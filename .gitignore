@@ -1,0 +1,64 @@
+# extensions
+*.fits
+*.png
+*.zip
+*.tar.gz
+*.indx
+*.reg
+*.ipynb
+*.md
+*.log
+*.coverage
+
+# folders
+__*
+__pycache__
+.ipynb_checkpoints
+.old_files
+archives
+Input
+Output
+
+#.pytest_cache
+#*egg-info
+#.coverage*
+#artifacts
+#sagsci/caldb
+#sagsci/examples/data/*_reflection/*.reg
+#sagsci/examples/data/*_reflection/*results*xml
+#sagsci/examples/data/*_wobble/run*/*.reg
+#sagsci/examples/data/*_wobble/run*/*results*xml
+#sagsci/examples/results
+#sagsci/wrappers/ctools
+#sagsci/miscellaneous
+
+# files
+#sagsci/conf.py
+#loadenv.sh
+#prod5.sh
+#sagsci/wrappers/*_run.sh
+#sagsci/examples/mkr501.sh
+#sagsci/examples/lst1test.sh
+#sagsci/examples/*.sh
+
+# exceptions
+#!environment.sh
+#!sagsci/examples/data/
+#!sagsci/examples/runtest.py
+#!sagsci/CTAGammaPipeCommon/templates/base_empty.fits
+#!sagsci/CTAGammaPipeCommon/templates/countsmap_empty.fits
+#!README.md
+#!CHANGELOG.md
+#!tutorials/notebooks/*ipynb
+#!tutorials/data/*fits
+
+# unit test
+#test/unittest/artifacts
+#test/unittest/sagenv
+#test/unittest/sagtest
+
+#*.DS_Store
+#!LICENSE
+#!.gitignore
+#!__init__.py
+#!test/unittest/tools/data/*fits
