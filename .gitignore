@@ -3,17 +3,18 @@
 *.png
 *.zip
 *.tar.gz
-*.indx
-*.reg
+#*.indx
+#*.reg
 #*.ipynb
-*.md
+#*.md
 *.log
-*.coverage
+#*.coverage
+*.yaml
 
 # folders
 __*
 __pycache__
-.ipynb_checkpoints
+#.ipynb_checkpoints
 .old_files
 archives
 Input
