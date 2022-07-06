@@ -44,9 +44,39 @@ def Simulator(configuration, transient):
     # -----------------TO DO
 
     # Section 2: Define the Detector Response
-    
 
+    # Perform checks for COSI and GBM Responses
+    if configuration['Name_Instrument']=="COSI":
+        File_rmf = configuration['Input_rmf']
+        #ARF?
+        Hdu_edisp= "MATRIX"
+    elif configuration['Name_Instrument']=="GBM":
+        File_rmf = configuration['Input_rsp']
+        #ARF?
+        Hdu_edisp= "SPECRESP MATRIX"
+    else:
+        logger.error(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
+        exit() # Sistemare sta cosa
 
+    # Define the Reconstructed Energy Axis from EBOUNDS HDU of RMF/RSP
+    axis_energy_reco = Define_Energy_Axis(File_rmf,
+                                          "EBOUNDS",
+                                          configuration,
+                                          logger,
+                                          energy_is_true = False
+                                         )
+    # Define the True Energy Axis from MATRIX/SPECRESP MATRIX HDU of RMF/RSP
+    axis_energy_true = Define_Energy_Axis(File_rmf,
+                                          Hdu_edisp,
+                                          configuration,
+                                          logger,
+                                          energy_is_true = True
+                                         )
+
+    # Define the Source Geometry
+    geom = DefineGeometry(pointing, axis_energy_reco, logger)    
+
+    #
     logger.info(f"Currently here!")
 
     return None

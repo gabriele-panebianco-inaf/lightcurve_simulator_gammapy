@@ -264,6 +264,140 @@ def Define_Schedule(configuration, trigger_time, logger):
     return observations_number, observations_start , observations_livetimes
 
 
+
+
+def Define_Energy_Axis(name_file_fits,
+                       name_hdu,
+                       configuration,
+                       logger,
+                       energy_is_true = False
+                      ):
+    """
+    Returns an Energy Axis.
+
+    Parameters
+    ----------
+    name_file_fits: str
+        Name of a FITS file that must be opened to get the Energy Axis information.
+    name_hdu: str
+        Name of the HDU that contains the Energy Axis information.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    logger : `logging.Logger`
+        Logger from main.
+    energy_is_true: bool
+        True if we want to create a True Energy Axis, False for a Reconstructed Energy Axis.
+
+    Returns
+    -------
+    energy_axis: `gammapy.maps.MapAxis`
+        True or Reconstructed Energy Axis
+    """
+
+    # Load Energy Table
+    with fits.open(name_file_fits) as hdulist:
+        energy_table = Table.read(hdulist[name_hdu])
+
+    # True or Reconstructed Energy?        
+    if energy_is_true:
+        energy_col_names = ("ENERG_LO", "ENERG_HI")
+        energy_axis_name = "energy_true"
+        logger.info("Define True Energy Axis")
+    else:
+        energy_col_names = ("E_MIN", "E_MAX")
+        energy_axis_name = "energy"
+        logger.info("Define Reconstructed Energy Axis")
+    
+    # Define Edges Columns
+    energy_col_min = energy_table[energy_col_names[0]].quantity
+    energy_col_max = energy_table[energy_col_names[1]].quantity
+
+    # Define Energy Unit
+    Energy_Unit = u.Unit(configuration['Energy_Unit'])
+    
+    if energy_col_min.unit is u.Unit(""):
+        logger.warning(f"Energy Axis file has adimensional values. Correct into {Energy_Unit}")
+        energy_col_min = energy_col_min * Energy_Unit
+        energy_col_max = energy_col_max * Energy_Unit
+    
+    # To avoid that min edge is 0
+    energy_col_min[0] += 1e-2 * (energy_col_max[0] - energy_col_min[0])
+
+    # Define Edges
+    energy_edges = np.append(energy_col_min.value, energy_col_max.value[-1]) * energy_col_min.unit
+
+    # Define Axis
+    energy_axis = MapAxis.from_edges(energy_edges,
+                                      name = energy_axis_name,
+                                      interp = configuration['Energy_Interpolation']
+                                     )
+    
+    # Slice Energy
+    if configuration['Energy_Slice']:
+        range_message = f"Original energy range: [{np.round(energy_axis.bounds[0].value,3)}, {np.round(energy_axis.bounds[1].value,3)}] "
+        range_message+= str(energy_axis.unit) + f". Energy bins: {energy_axis.nbin}."
+        logger.info(range_message)
+
+        if energy_is_true:
+            energy_custom_range = configuration['Energy_Range_True'] * Energy_Unit
+        else:
+            energy_custom_range = configuration['Energy_Range_Reco'] * Energy_Unit
+        
+        dummy_array = energy_axis.edges - energy_custom_range[0]
+        i_start_energy = np.argmin(np.abs(dummy_array.value))
+
+        dummy_array = energy_axis.edges - energy_custom_range[1]
+        i_stop_energy  = np.argmin(np.abs(dummy_array.value))
+
+        energy_axis = energy_axis.slice(slice(i_start_energy, i_stop_energy))
+
+        range_message = f"Current  energy range: [{np.round(energy_axis.bounds[0].value,3)}, {np.round(energy_axis.bounds[1].value,3)}] "
+        range_message+= str(energy_axis.unit)+f". Energy bins: {energy_axis.nbin}."
+        logger.info(range_message)
+    
+    logger.info(energy_axis)
+    return energy_axis
+
+
+def DefineGeometry(pointing, axis_energy_reco, logger,radius=1.0):
+    """
+    Define the Source Sky Geometry: a circular region in the sky where we place the source
+    and we assume that we can receive photons with reconstructed energy in the given axis.
+
+    Parameters
+    ----------
+    pointing: `astropy.coordinates.SkyCoord`
+        Center of the Region.
+    axis_energy_reco: `gammapy.maps.MapAxis`
+        Reconstructed Energy Axis, non-spatial dimension of the source geometry.
+    logger : `logging.Logger`
+        Logger from main.
+    radius: float
+        radius of the Circular Geometry in degree. Must be smaller than the FoV.
+
+    Returns
+    -------
+    geometry : `gammapy.maps.region.geom.RegionGeom`
+        Circular Source Geometry.
+    """
+
+    geometry_radius = radius * u.deg
+
+    source_geometry_str = pointing.frame.name + ';circle('
+    source_geometry_str+= pointing.to_string().split()[0] + ', '
+    source_geometry_str+= pointing.to_string().split()[1] + ', '
+    source_geometry_str+= str(geometry_radius.value) + ')'
+
+    geometry = RegionGeom.create(source_geometry_str, axes = [axis_energy_reco])
+
+    logger.info(geometry)
+
+    return geometry
+
+
+
+
+
 def Goodbye(logger, execution_time_start):
     """
     Goodbye function. Mostly counts time.

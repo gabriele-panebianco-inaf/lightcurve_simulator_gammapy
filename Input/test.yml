@@ -20,11 +20,11 @@ Name_Instrument : GBM # Of the IRFs
 Name_Detector   : b0  # Of the IRFs
 
 Input_rsp : /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
-Input_arf : none
-Input_rmf : none
+Input_arf : null
+Input_rmf : null
 Input_bak : /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
 
-Energy_Interpolation : log
+Energy_Interpolation : log            # Either "lin" or "log"
 Energy_Unit  : keV
 Energy_Slice : True
 Energy_Range_Reco : [250.0, 10000.0]
