@@ -7,7 +7,7 @@
 #*.reg
 *.ipynb
 #*.md
-*.log
+#*.log
 #*.coverage
 *.yaml
 
