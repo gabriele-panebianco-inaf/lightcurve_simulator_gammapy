@@ -18,7 +18,7 @@ __pycache__
 .old_files
 archives
 Input/GRB*
-Output
+Output/*A
 
 #.pytest_cache
 #*egg-info
