@@ -5,7 +5,7 @@
 *.tar.gz
 #*.indx
 #*.reg
-#*.ipynb
+*.ipynb
 #*.md
 *.log
 #*.coverage
@@ -14,10 +14,10 @@
 # folders
 __*
 __pycache__
-#.ipynb_checkpoints
+.ipynb_checkpoints
 .old_files
 archives
-Input
+Input/GRB*
 Output
 
 #.pytest_cache
