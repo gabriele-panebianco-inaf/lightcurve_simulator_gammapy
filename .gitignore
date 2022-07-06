@@ -1,17 +1,4 @@
-# extensions
-*.fits
-*.png
-*.zip
-*.tar.gz
-#*.indx
-#*.reg
-*.ipynb
-#*.md
-#*.log
-#*.coverage
-*.yaml
-
-# folders
+# Folders
 __*
 __pycache__
 .ipynb_checkpoints
@@ -20,6 +7,27 @@ archives
 Input/GRB*
 Output/*A
 
+# Extensions
+*.fits
+*.png
+*.zip
+*.tar.gz
+*.yaml
+#*.ipynb
+
+# Files
+Tutorial*
+
+
+###########################
+# Other Extensions
+#*.indx
+#*.reg
+#*.md
+#*.log
+#*.coverage
+
+# Other Folders
 #.pytest_cache
 #*egg-info
 #.coverage*
@@ -29,11 +37,8 @@ Output/*A
 #sagsci/examples/data/*_reflection/*results*xml
 #sagsci/examples/data/*_wobble/run*/*.reg
 #sagsci/examples/data/*_wobble/run*/*results*xml
-#sagsci/examples/results
-#sagsci/wrappers/ctools
-#sagsci/miscellaneous
 
-# files
+# Other Files
 #sagsci/conf.py
 #loadenv.sh
 #prod5.sh
@@ -42,7 +47,7 @@ Output/*A
 #sagsci/examples/lst1test.sh
 #sagsci/examples/*.sh
 
-# exceptions
+# Exceptions
 #!environment.sh
 #!sagsci/examples/data/
 #!sagsci/examples/runtest.py
@@ -53,7 +58,7 @@ Output/*A
 #!tutorials/notebooks/*ipynb
 #!tutorials/data/*fits
 
-# unit test
+# Unit test
 #test/unittest/artifacts
 #test/unittest/sagenv
 #test/unittest/sagtest
