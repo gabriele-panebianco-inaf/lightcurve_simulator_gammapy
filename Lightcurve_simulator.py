@@ -29,7 +29,7 @@ def Simulator(configuration, transient):
     # Define Pointing Direction (FoV Centre) as SkyCoord
     pointing = SkyCoord(transient['ra'].value, transient['dec'].value,
                         unit = transient['ra'].unit, frame = 'fk5', equinox='J2000')
-    logger.info(f"Pointing Direction: {pointing}")
+    logger.info(f"Define Pointing Direction: {pointing}.\n")
 
     # Define Instrument FoV Axes: Offset, FovLon, FoVLat
     axis_offset, axis_fovlon, axis_fovlat = Define_FoV_Axes(logger)
@@ -40,20 +40,29 @@ def Simulator(configuration, transient):
                                                                                        logger
                                                                                       )
 
-    # Load the Empirical Light Curve for Comparison?
-    # -----------------TO DO
+    # Load the Empirical Light Curve for Comparison
+    # -----------------TO DO?
 
     # Section 2: Define the Detector Response
-
-    # Perform checks for COSI and GBM Responses
+    logger.info(f"Responses for instrument: {configuration['Name_Instrument']}, detector {configuration['Name_Detector']}.\n")
+    
+    # GBM and COSI have different types of response file
     if configuration['Name_Instrument']=="COSI":
         File_rmf = configuration['Input_rmf']
-        #ARF?
         Hdu_edisp= "MATRIX"
+
+        File_arf = configuration['Input_arf']
+        Hdu_aeff = "SPECRESP"
+
     elif configuration['Name_Instrument']=="GBM":
         File_rmf = configuration['Input_rsp']
-        #ARF?
         Hdu_edisp= "SPECRESP MATRIX"
+        Detector_Response_Matrix = Define_Response_Matrix_rfom_RSP(File_rmf,
+                                                                   Hdu_edisp,
+                                                                   "EBOUNDS",
+                                                                   configuration,
+                                                                   logger
+                                                                  )
     else:
         logger.error(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
         exit() # Sistemare sta cosa
@@ -74,7 +83,21 @@ def Simulator(configuration, transient):
                                          )
 
     # Define the Source Geometry
-    geom = DefineGeometry(pointing, axis_energy_reco, logger)    
+    geom = Define_Geometry(pointing, axis_energy_reco, logger)  
+
+
+    # Define the Effective Area
+    if configuration['Name_Instrument']=="COSI":
+        aeff_array = Define_Effective_Area_from_ARF(File_arf,
+                                                    Hdu_aeff,
+                                                    configuration,
+                                                    logger
+                                                    )
+    elif configuration['Name_Instrument']=="GBM":
+        logger.info("Compute Effective Area.")
+        aeff_array = np.sum(Detector_Response_Matrix, axis=1)
+     
+      
 
     #
     logger.info(f"Currently here!")

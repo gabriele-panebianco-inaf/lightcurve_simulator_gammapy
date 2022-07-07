@@ -13,6 +13,7 @@ Output/*A
 *.zip
 *.tar.gz
 *.yaml
+*.sh
 #*.ipynb
 
 # Files

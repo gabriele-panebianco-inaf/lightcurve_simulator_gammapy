@@ -1,7 +1,7 @@
 # Simulation Parameters
 Input_Catalogue: /home/gabriele/Documents/gammapy/LCsim/archives/GBM_bursts.fits
-Name_Transient : GRB160530667 #GRB160530A      # null = sample randomly
-Random_Seed    : 7 # Ignored if transient name is set
+Name_Transient : GRB160530667  # null = sample randomly
+Random_Seed    : 7             # Ignored if transient name is set
 N_Light_Curves : 15
 
 Time_Unit : s
@@ -16,13 +16,13 @@ Output_Run_ID    : run77
 
 
 # IRFs
-Name_Instrument : GBM # Of the IRFs
-Name_Detector   : b0  # Of the IRFs
+Name_Instrument : COSI # Of the IRFs
+Name_Detector   : bal  # Of the IRFs
 
-Input_rsp : /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
-Input_arf : null
-Input_rmf : null
-Input_bak : /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
+Input_rsp : null
+Input_arf : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A.arf
+Input_rmf : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A.rmf
+Input_bak : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A_bk.pha
 
 Energy_Interpolation : log            # Either "lin" or "log"
 Energy_Unit  : keV
