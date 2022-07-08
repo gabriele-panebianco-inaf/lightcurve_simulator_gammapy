@@ -10,6 +10,7 @@ Output/*A
 # Extensions
 *.fits
 *.png
+*.pdf
 *.zip
 *.tar.gz
 *.yaml

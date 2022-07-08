@@ -5,7 +5,7 @@ import argparse
 from LCsim_utilities import *
 
 
-def Simulator(configuration, transient):
+def Simulator(configuration, transient, output_directory):
     """
     Main body of the script. It executes the simulator.
     Parameters
@@ -14,6 +14,8 @@ def Simulator(configuration, transient):
         Dictionary with the parameters from the YAML file.
     transient : `astropy.table.row.Row`
         Row that contains the selected transient from the catalogue.
+    output_directory : str
+        Directory used to write and save output.
     Returns
     -------
         None
@@ -50,22 +52,24 @@ def Simulator(configuration, transient):
     if configuration['Name_Instrument']=="COSI":
         File_rmf = configuration['Input_rmf']
         Hdu_edisp= "MATRIX"
-
         File_arf = configuration['Input_arf']
         Hdu_aeff = "SPECRESP"
 
     elif configuration['Name_Instrument']=="GBM":
         File_rmf = configuration['Input_rsp']
         Hdu_edisp= "SPECRESP MATRIX"
-        Detector_Response_Matrix = Define_Response_Matrix_rfom_RSP(File_rmf,
-                                                                   Hdu_edisp,
-                                                                   "EBOUNDS",
-                                                                   configuration,
-                                                                   logger
-                                                                  )
     else:
         logger.error(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
         exit() # Sistemare sta cosa
+
+
+    # Read the Detector Response Matrix
+    Detector_Response_Matrix = Define_Response_Matrix_from_RSP(File_rmf,
+                                                                Hdu_edisp,
+                                                                "EBOUNDS",
+                                                                configuration,
+                                                                logger
+                                                                )
 
     # Define the Reconstructed Energy Axis from EBOUNDS HDU of RMF/RSP
     axis_energy_reco = Define_Energy_Axis(File_rmf,
@@ -86,7 +90,7 @@ def Simulator(configuration, transient):
     geom = Define_Geometry(pointing, axis_energy_reco, logger)  
 
 
-    # Define the Effective Area
+    # Define the Effective Area as an array 1D (vs Energy True)
     if configuration['Name_Instrument']=="COSI":
         aeff_array = Define_Effective_Area_from_ARF(File_arf,
                                                     Hdu_aeff,
@@ -96,8 +100,32 @@ def Simulator(configuration, transient):
     elif configuration['Name_Instrument']=="GBM":
         logger.info("Compute Effective Area.")
         aeff_array = np.sum(Detector_Response_Matrix, axis=1)
-     
-      
+
+    # Define the Effective Area as an array 2D (vs Energy True, Offset)
+    Effective_Area = Compute_Effective_Area_2D(aeff_array,
+                                               axis_offset,
+                                               axis_energy_true,
+                                               logger,
+                                               configuration,
+                                               transient,
+                                               output_directory
+                                              )
+
+        
+
+    
+    # Define the Energy Dispersion Matrix as an EDispKernelMap (with an Exposure Map)
+    Energy_Dispersion_Matrix_Map = Compute_Energy_Dispersion_Matrix(Detector_Response_Matrix,
+                                                                    axis_energy_true,
+                                                                    axis_energy_reco,
+                                                                    Effective_Area,
+                                                                    observations_livetimes,
+                                                                    geom,
+                                                                    logger,
+                                                                    configuration,
+                                                                    transient,
+                                                                    output_directory)
+    
 
     #
     logger.info(f"Currently here!")
@@ -124,10 +152,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # 1 - Load Configuration YAML file and Choose a Transient
-    configuration, transient = Initialize(logger, args.configurationfile)
+    configuration, transient, output_directory = Initialize(logger, args.configurationfile)
     
     # 2 - Execute the simulator
-    Simulator(configuration, transient)
+    Simulator(configuration, transient, output_directory)
 
     # Goodbye
     Goodbye(logger, EXECUTION_TIME_START)

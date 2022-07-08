@@ -43,6 +43,8 @@ from gammapy.modeling.models import (
 )
 from gammapy.utils.random import get_random_state
 
+FIGURE_FORMAT = ".pdf"
+
 ############ Functions
 
 def Welcome(logger):
@@ -70,6 +72,8 @@ def Initialize(logger, Configuration_file_path):
         Dictionary with the parameters from the YAML file.
     transient : `astropy.table.row.Row`
         Row that contains the selected transient from the catalogue.
+    output_directory : str
+        Directory used to write and save output.
     """
 
     # Load YAML as a dict
@@ -133,7 +137,7 @@ def Initialize(logger, Configuration_file_path):
 
     logger.info(f"Configuration. Output Directory: {output_directory} \n")
     
-    return configuration, transient
+    return configuration, transient, output_directory
 
 def Define_Reference_Time(transient, time_format, logger):
     """
@@ -469,7 +473,7 @@ def Define_Effective_Area_from_ARF(name_file_fits,
 
 
 
-def Define_Response_Matrix_rfom_RSP(name_file_fits,
+def Define_Response_Matrix_from_RSP(name_file_fits,
                                     name_hdu,
                                     name_hdu_ebounds,
                                     configuration,
@@ -501,7 +505,11 @@ def Define_Response_Matrix_rfom_RSP(name_file_fits,
     # Load the Response
     with fits.open(name_file_fits) as hdulist:
         DETCHANS = hdulist[name_hdu].header["DETCHANS"]
-        DRM_unit = u.Unit(hdulist[name_hdu].header['TUNIT6'])
+        try:
+            DRM_Unit = u.Unit(hdulist[name_hdu].header['TUNIT6'])
+        except KeyError:
+            logger.warning(f"Key TUNIT6 not found. Assuming adimensional Response Matrix.")
+            DRM_Unit = u.Unit("")
         DRM_specresp = QTable.read(hdulist[name_hdu])
         DRM_ebounds = QTable.read(hdulist['EBOUNDS'])
 
@@ -514,10 +522,10 @@ def Define_Response_Matrix_rfom_RSP(name_file_fits,
             for k in range(l["N_GRP"]):
             
                 if np.isscalar(l["N_CHAN"]):
-                    f_chan = l["F_CHAN"]    -1 # Should this be here?
+                    f_chan = l["F_CHAN"]    -1 # Necessary only for GBM (?)
                     n_chan = l["N_CHAN"]
                 else:
-                    f_chan = l["F_CHAN"][k] -1 # Should this be here?
+                    f_chan = l["F_CHAN"][k] -1 # Necessary only for GBM (?)
                     n_chan = l["N_CHAN"][k]
 
                 DRM[i, f_chan : f_chan+n_chan] = l["MATRIX"][m_start : m_start+n_chan]
@@ -577,9 +585,194 @@ def Define_Response_Matrix_rfom_RSP(name_file_fits,
     range_message+= f" {energy_reco_edges.unit}. Energy bins: {DRM.shape[1]}."
     logger.info(range_message)
 
-    logger.info(f"Response Matrix unit: {DRM_unit}.\n")
+    logger.info(f"Response Matrix unit: {DRM_Unit}.\n")
     
-    return DRM * DRM_unit
+    return DRM * DRM_Unit
+
+
+def Compute_Effective_Area_2D(aeff_array,
+                              axis_offset,
+                              axis_energy_true,
+                              logger,
+                              configuration,
+                              transient,
+                              output_directory
+                              ):
+    """
+    Returns the Effective Area as requested by Gammapy.
+    We assume that the Effective Area is constant with offset.
+
+    Parameters
+    ----------
+    aeff_array : `astropy.units.Quantity`
+        Astropy array of Effective Area values as a function of energy.
+    axis_offset : `gammapy.maps.MapAxis`
+        Axis Offset.
+    axis_energy_true : `gammapy.maps.MapAxis`
+        True Energy Axis.
+    logger : `logging.Logger`
+        Logger from main.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    transient : `astropy.table.row.Row`
+        Row that contains the selected transient from the catalogue.
+    output_directory : str
+        Output directory where to save a figure of the Effective Area.
+
+    Returns
+    -------
+    aeff : `gammapy.irf.EffectiveAreaTable2D`
+    """
+
+    logger.info("Assume Effective Area is constant in the Instrument FoV")
+
+    # Replicate the Effective Area array for each bin of the Offset Axis
+    aeff_matrix = np.transpose(aeff_array.value * np.ones((axis_offset.nbin,axis_energy_true.nbin)))
+
+    aeff = EffectiveAreaTable2D(axes = [axis_energy_true, axis_offset],
+                                data = aeff_matrix,
+                                unit = aeff_array.unit
+                               )
+
+    logger.info(aeff)
+    logger.info(f"Total effective area: {np.sum(aeff_array)}.")
+
+    # Plot and save
+    title = f"Effective Area {configuration['Name_Instrument']}"
+    title+= f" {configuration['Name_Detector']}, {transient['name']}."
+    fig, axs = plt.subplots(1,2, figsize=(15,5))
+
+    axs[0].step(axis_energy_true.center.value, aeff_array, c='C3')
+    axs[0].set_xscale('log')
+    axs[0].set_yscale('log')
+    axs[0].set_xlabel('True Energy ['+axis_energy_true.unit.to_string()+']', fontsize = 'large')
+    axs[0].set_ylabel('Effective Area ['+aeff.unit.to_string()+']', fontsize = 'large')
+    axs[0].set_title(title, fontsize = 'large')
+    axs[0].grid()
+
+    aeff.plot(ax = axs[1], add_cbar = True)
+    axs[1].set_title(title, fontsize = 'large')
+    axs[1].set_xscale('log')
+
+    figure_name = output_directory + "IRF_effective_area"+FIGURE_FORMAT
+    logger.info(f"Saving Effective area plot: {figure_name}\n")
+    fig.savefig(figure_name, facecolor = 'white')
+
+    return aeff
+
+def Compute_Energy_Dispersion_Matrix(Detector_Response_Matrix,
+                                    axis_energy_true,
+                                    axis_energy_reco,
+                                    aeff,
+                                    livetimes,
+                                    geom,
+                                    logger,
+                                    configuration,
+                                    transient,
+                                    output_directory):
+    """
+    Returns the Energy Dispersion Matrix as requested by Gammapy.
+    Set the Exposure Map of the Energy Dispersion Matrix
+
+    Parameters
+    ----------
+    Detector_Response_Matrix : `astropy.units.Quantity`
+        Astropy matrix of Detector Response as a function of true and reconstructed energy.
+    axis_energy_true : `gammapy.maps.MapAxis`
+        True Energy Axis.
+    axis_energy_reco : `gammapy.maps.MapAxis`
+        Reco Energy Axis.
+    aeff : `gammapy.irf.EffectiveAreaTable2D`
+        Effective Area, needed to set the Exposure Map.
+    livetimes : `astropy.units.Quantity`
+        Astropy Array of the livetimes, needed to set the Exposure Map.
+    logger : `logging.Logger`
+        Logger from main.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    transient : `astropy.table.row.Row`
+        Row that contains the selected transient from the catalogue.
+    output_directory : str
+        Output directory where to save a figure of the Effective Area.
+
+    Returns
+    -------
+    edisp : 
+    """
+
+    logger.info("Compute Energy Dispersion Matrix")
+
+    edisp = EDispKernel(axes = [axis_energy_true, axis_energy_reco], data = Detector_Response_Matrix.value)
+    edisp = EDispKernelMap.from_edisp_kernel(edisp, geom = geom)
+
+    # Normalize GBM Data:
+    if configuration['Name_Instrument'] == 'GBM':
+        DRM = np.zeros(np.shape(edisp.edisp_map.data.T[0][0].T))
+        for i, r in enumerate(edisp.edisp_map.data.T[0][0].T):
+            norm_row = np.sum(r)
+            if norm_row != 0.0:
+                DRM[i] = r / norm_row
+
+        DRM = np.reshape(DRM, np.shape(edisp.edisp_map.data))
+        edisp.edisp_map.data = DRM
+        logger.warning(f"Normalization to 1 applied: assuming no lost photons.")
+
+    # Set correct Units for exposure map
+    edisp.exposure_map = edisp.exposure_map.to_unit(aeff.unit * livetimes.unit)
+    # Initialize the Exposure with effective area values * livetimes. Assume all lifetimes are equal
+    edisp.exposure_map.data *= 0.0
+    edisp.exposure_map.data += np.reshape( aeff.data.T[0], edisp.exposure_map.data.T.shape ).T
+    edisp.exposure_map.data *= livetimes[0].value
+
+    logger.info("Exposure Map of Energy Dispersion set.")
+
+    # Plot the Energy Dispersion Matrix
+
+
+    # Prepare Grid
+    X, Y = np.meshgrid(axis_energy_true.center.value, axis_energy_reco.center.value)
+
+    # Copy Data with Masking
+    Z = np.ma.masked_where(edisp.edisp_map.data.T[0][0] <= 0, edisp.edisp_map.data.T[0][0])
+
+    # Plot
+    fig, ax = plt.subplots(1, figsize=(9,5))
+
+    # Define Levels
+    levs = np.linspace(np.floor(np.power(Z.min(),0.3)),
+                       np.ceil( np.power(Z.max(),0.3)),
+                       num = 50
+                      )
+    levs = np.power(levs, 1.0/0.3)
+
+    # Plot Data
+    cs = ax.contourf(X, Y, Z, levs, norm = PowerNorm(gamma=0.3), cmap = 'plasma')
+    ax.contour(X, Y, Z, levs, norm = PowerNorm(gamma=0.3), colors='white', alpha=0.05)
+    cbar = fig.colorbar(cs)
+
+    # Labels
+    ax.set_facecolor('k')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    cbar.set_label('Redistribution Probability', fontsize = 'large')
+    ax.set_xlabel('True Energy ['+axis_energy_true.unit.to_string()+']', fontsize = 'large')
+    ax.set_ylabel('Energy ['     +axis_energy_reco.unit.to_string()+']', fontsize = 'large')
+
+    title = f"Energy Dispersion Matrix {configuration['Name_Instrument']}"
+    title+= f" {configuration['Name_Detector']}, {transient['name']}."
+    ax.set_title(title, fontsize = 'large')
+
+    # Save figure
+    figure_name = output_directory+"IRF_energy_dispersion_matrix"+FIGURE_FORMAT
+    logger.info(f"Saving Energy Dispersion Matrix plot : {figure_name}\n")
+    fig.savefig(figure_name, facecolor = 'white')
+
+
+    return edisp
+
+
+
+
 
 
 
