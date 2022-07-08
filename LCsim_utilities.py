@@ -268,6 +268,8 @@ def Define_Schedule(configuration, trigger_time, logger):
     # Log
     logger.info(f"Number of Observations: {observations_number}.")
     logger.info(f"Observation start: {observations_start[0]}.")
+    logger.info(f"Observation start wrt Trigger Time: {Time_Start}.")
+    logger.info(f"Observation stop  wrt Trigger Time: {Time_Stop}.")
     logger.info(f"Observation livetime: {np.round(observations_livetimes[0],4)}.\n")
 
     return observations_number, observations_start , observations_livetimes
@@ -950,6 +952,80 @@ def Compute_Background_3D(bak_model,
     fig.savefig(figure_name, facecolor = 'white')
 
     return bkg
+
+
+def Define_Template_Temporal_Model(trigger_time, configuration, logger):
+    """
+    Return the Temporal Model and the correction factor for spectral normalization.
+    The correct spectral normalization is the fit normalization / correction_factor
+    because the fit normalization is a time-integrated average.
+
+    Parameters
+    ----------
+    trigger_time : `astropy.time.Time`
+        Trigger time.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    logger : `logging.Logger`
+        Logger from main.
+
+    Returns
+    -------
+    Temporal_Model : `gammapy.modeling.models.temporal.TemporalModel`
+        A Temporal Model for the SkyModel.
+    correction_factor : float        
+    """
+
+    
+    logger.info(f"Read Temporal Model from: {configuration['Light_Curve_Input']}")
+    LC_empirical = QTable.read(configuration['Light_Curve_Input'], format = 'fits')
+
+    if LC_empirical['time'].unit in [None, u.Unit("")]:
+        logger.warning(f"Time Unit of Template Light Curve not found. Using {configuration['Time_Unit']}")
+        LC_empirical['time'] = LC_empirical['time'] * u.Unit(configuration['Time_Unit'])
+
+    Temporal_Model_Table_Metadata = {'MJDREFI' : int(np.modf(trigger_time.mjd)[1]),
+                                     'MJDREFF' :     np.modf(trigger_time.mjd)[0],
+                                     'TIMEUNIT': LC_empirical['time'].unit.to_string(),
+                                     'TIMESYS' : trigger_time.scale
+                                    }
+
+    Temporal_Model_Table = Table(meta = Temporal_Model_Table_Metadata)
+    Temporal_Model_Table['TIME'] = LC_empirical['time']
+    Temporal_Model_Table['NORM'] = LC_empirical['norm']
+
+    Temporal_Model = LightCurveTemplateTemporalModel(Temporal_Model_Table)
+
+    logger.info(Temporal_Model)
+
+    # Evaluate correction factor
+    spectral_fit_time_range = configuration['Specfit_time_range']*u.Unit(configuration['Time_Unit'])
+
+    correction_factor = [trigger_time.mjd + spectral_fit_time_range[0].to("day").value,
+                         trigger_time.mjd + spectral_fit_time_range[1].to("day").value
+                        ]
+    correction_factor = Time(correction_factor, format = 'mjd')
+    
+    correction_factor = Temporal_Model.integral(correction_factor[0], correction_factor[1])
+    logger.info(f"Correction factor for time-integration: {np.round(correction_factor,3)}.\n")
+
+
+    return Temporal_Model, correction_factor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def Goodbye(logger, execution_time_start):

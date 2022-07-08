@@ -159,7 +159,19 @@ def Simulator(configuration, transient, output_directory):
     # Define the IRFs Dictionary
     IRFs = {'aeff' : Effective_Area, 'bkg'  : Background}
     
-    
+
+
+
+    # Section 3: Define the Models
+
+    # Define the Temporal Model
+    if configuration['Light_Curve_Template']:
+        Temporal_Model, correction_factor = Define_Template_Temporal_Model(trigger_time_t0,
+                                                                            configuration,
+                                                                            logger
+                                                                          )
+    else:
+        logger.error("TO BE IMPLEMENTED")
 
     #
     logger.info(f"Currently here!")
