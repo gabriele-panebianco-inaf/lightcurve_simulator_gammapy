@@ -977,7 +977,8 @@ def Define_Template_Temporal_Model(trigger_time, configuration, logger):
     -------
     Temporal_Model : `gammapy.modeling.models.temporal.TemporalModel`
         A Temporal Model for the SkyModel.
-    correction_factor : float        
+    correction_factor : float 
+        Correction factor for Spectral Normalization due to time-average of the spectral fit.       
     """
 
     
@@ -1044,7 +1045,8 @@ def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
     -------
     Temporal_Model : `gammapy.modeling.models.GaussianTemporalModel`
         A Temporal Model for the SkyModel.
-    correction_factor : float        
+    correction_factor : float 
+        Correction factor for Spectral Normalization due to time-average of the spectral fit.       
     """
 
     # Set Average
@@ -1085,6 +1087,56 @@ def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
 
 
 
+def Define_Spectral_Model(configuration, transient, logger, correction_factor):
+    """
+    Return the Spectral Model.
+
+    Parameters
+    ----------
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    transient : `astropy.table.row.Row`
+        Row that contains the selected transient from the catalogue.
+    logger : `logging.Logger`
+        Logger from main.
+    correction_factor : float 
+        Correction factor for Spectral Normalization due to time-average of the spectral fit.
+
+    Returns
+    -------
+    Spectral_Model : `gammapy.modeling.models.spectral.SpectralModel`
+        A Spectral Model for the SkyModel.       
+    """
+
+    if configuration['Spectral_Model_Name'] == "comp":
+        logger.info(f"Spectral Model Type: {configuration['Spectral_Model_Type']}")
+        logger.info(f"Spectral Model Name: {configuration['Spectral_Model_Name']}")
+        label = configuration['Spectral_Model_Type'] +'_' + configuration['Spectral_Model_Name'] + '_'
+
+        logger.info(f"Transient Amplitude: {transient[label+'ampl']}")
+        logger.info(f"Transient Index: {transient[label+'index']}")
+        logger.info(f"Transient Peak Energy: {transient[label+'epeak']}")
+        logger.info(f"Transient Pivot Energy: {transient[label+'pivot']}")
+
+        amplitude = transient[label+'ampl'] * correction_factor
+        index = - transient[label+'index']
+        lambda_ = (2.0 + transient[label+'index']) / transient[label+'epeak']
+        reference = transient[label+'pivot']
+
+        logger.info("Convert parameters of GBM Model into parameters of Gammapy Model")
+
+        Spectral_Model = ExpCutoffPowerLawSpectralModel(amplitude = amplitude,
+                                                index     = index,
+                                                lambda_   = lambda_,
+                                                reference = reference
+                                               )
+        logger.info(Spectral_Model)
+    else:
+        raise NotImplementedError("Only Comptonized Spectral Model has been implemented.")
+
+
+    return Spectral_Model
+    
 
 
 
@@ -1095,7 +1147,94 @@ def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
 
 
 
+def Plot_Sky_Model(sky_model, configuration, transient, logger, energy_axis, trigger_time,
+                    correction_factor, output_directory):
+    """
+    Plot and save the Sky Model.
 
+    Parameters
+    ----------
+    sky_model : `gammapy.modeling.models.SkyModel`
+        Sky Model to plot.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    transient : `astropy.table.row.Row`
+        Row that contains the selected transient from the catalogue.
+    logger : `logging.Logger`
+        Logger from main.
+    correction_factor : float 
+        Correction factor for Spectral Normalization due to time-average of the spectral fit.
+    energy_axis: `gammapy.maps.MapAxis`
+        True Energy Axis
+    trigger_time : `astropy.time.Time`
+        Trigger time.
+    correction_factor : float 
+        Correction factor for Spectral Normalization due to time-average of the spectral fit.
+    output_directory : str
+        Directory used to write and save output.
+
+    Returns
+    -------
+    None      
+    """
+
+    fig, axs = plt.subplots(1,2, figsize = (15,5) )
+
+    # Spectral Model
+    if configuration['Energy_Interpolation'] == 'lin':
+        energies_to_plot = np.linspace(energy_axis.edges[0], energy_axis.edges[-1], num=100)
+    elif configuration['Energy_Interpolation'] == 'log':
+        energies_to_plot = np.linspace(np.log10(energy_axis.edges[0].value),
+                                       np.log10(energy_axis.edges[-1].value),
+                                       num = 100
+                                      )
+        energies_to_plot = np.power(10,energies_to_plot)
+        energies_to_plot = energies_to_plot * energy_axis.unit
+
+    dnde_to_plot, dnde_errors = sky_model.spectral_model.evaluate_error(energies_to_plot)
+
+    axs[0].plot(energies_to_plot.value, dnde_to_plot.value)
+
+    title = f"Spectral Model {transient['name']}, {configuration['Name_Instrument']} {configuration['Name_Detector']}."
+    axs[0].set_title(title, fontsize = 'large')
+    axs[0].set_xlabel("True Energy ["+energies_to_plot.unit.to_string()+"]", fontsize = 'large')
+    axs[0].set_ylabel("dnde ["+dnde_to_plot.unit.to_string()+"]", fontsize = 'large')
+    axs[0].set_xscale('log')
+    axs[0].set_yscale('log')
+    axs[0].grid(which="both")
+
+    # Temporal Model
+
+    obs_time_start = configuration['Observation_Time_Start'] * u.Unit(configuration['Time_Unit'])
+    obs_time_stop  = configuration['Observation_Time_Stop' ] * u.Unit(configuration['Time_Unit'])
+
+    times_to_plot = np.linspace(obs_time_start, obs_time_stop, num=300)
+    norms_to_plot = sky_model.temporal_model.evaluate(trigger_time.mjd + times_to_plot.to("day").value)
+    axs[1].plot(times_to_plot.value, norms_to_plot)
+    
+    title = f"Temporal Model {transient['name']}, {configuration['Name_Instrument']} {configuration['Name_Detector']}."
+    axs[1].set_title(title, fontsize = 'large')
+    axs[1].grid(which="both")
+    axs[1].set_xlabel(f"Time since Trigger [{configuration['Time_Unit']}]", fontsize = 'large')
+    axs[1].set_ylabel("Temporal Model Norm [A.U.]", fontsize = 'large')
+
+    # Legends
+    labels = []
+    handles = []
+    for par in sky_model.spectral_model.parameters:
+        labels.append(par.name+f": {par.value:.2e} [" +par.unit.to_string()+"]")
+        handles.append(mlines.Line2D([], []))
+
+    axs[0].legend(handles, labels)
+    axs[1].legend([mlines.Line2D([], []),mlines.Line2D([], [])],
+                  ["Trigger: "+trigger_time.value,f"Correction Factor: {correction_factor:.2f}"])
+
+    # Save Figure
+    figure_name = output_directory + "Models"+FIGURE_FORMAT
+    logger.info(f"Saving Model plot: {figure_name}\n")
+    fig.savefig(figure_name, facecolor = 'white')
+
+    return None
 
 
 

@@ -61,8 +61,7 @@ def Simulator(configuration, transient, output_directory):
         File_rmf = configuration['Input_rsp']
         Hdu_edisp= "SPECRESP MATRIX"
     else:
-        logger.error(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
-        exit()
+        raise NotImplementedError(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
 
 
     # Read and define the Reconstructed Energy Axis from EBOUNDS HDU of RMF/RSP
@@ -171,6 +170,7 @@ def Simulator(configuration, transient, output_directory):
                                                                             configuration,
                                                                             logger
                                                                           )
+        tem_mod_name = "Empirical"
     else:
         logger.warning("Light Curve temporal model shape not provided. Assuming Gaussian Pulse.")
         Temporal_Model, correction_factor = Define_Gaussian_Pulse(trigger_time_t0,
@@ -178,9 +178,32 @@ def Simulator(configuration, transient, output_directory):
                                                                     transient,
                                                                     logger    
                                                                 )
+        tem_mod_name = "Gaussian"
 
-    #
-    logger.info(f"Currently here!")
+    # Implement Spectral Model
+    Spectral_Model = Define_Spectral_Model(configuration,
+                                            transient,
+                                            logger,
+                                            correction_factor
+                                        )
+
+    # Implement Sky Model
+    logger.info("Define the Sky Model: Spectral Model * Temporal Model")
+    model_simulations = SkyModel(spectral_model = Spectral_Model,
+                                 temporal_model = Temporal_Model,
+                                 name = configuration['Spectral_Model_Name']+'-'+tem_mod_name
+                                )
+    Plot_Sky_Model(model_simulations, configuration, transient, logger, axis_energy_true, trigger_time_t0,
+                    correction_factor, output_directory)
+
+
+
+
+
+    # Section 4 - Perform the simulations
+
+
+
 
     return None
 
