@@ -1,0 +1,43 @@
+# Simulation Parameters
+Input_Catalogue: /home/gabriele/Documents/gammapy/LCsim/archives/GBM_bursts.fits
+Name_Transient : GRB160530667  # null = sample randomly
+Random_Seed    : 7             # Ignored if transient name is set
+N_Light_Curves : 4
+
+Time_Unit : s
+Observation_Time_Start: -5.0  # Start time of the first observation wrt trigger time
+Observation_Time_Stop : 20.0  # End time of the last observation wrt trigger time
+Observation_Livetime  : 0.200 # Livetime of each observation
+Observation_Deadtime  : 0.000 # Deadtime of each observation
+
+Output_Directory : /home/gabriele/Documents/gammapy/LCsim/Output/
+Output_Run_ID    : run77
+
+
+
+# IRFs
+Name_Instrument : COSI # Of the IRFs
+Name_Detector   : bal  # Of the IRFs
+
+Input_rsp : null
+Input_arf : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A.arf
+Input_rmf : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A.rmf
+Input_bak : /home/gabriele/Documents/cosi/GRB160530A/GRB160530A_bk.pha
+
+Energy_Interpolation : log            # Either "lin" or "log"
+Energy_Unit  : keV
+Energy_Slice : True
+Energy_Range_Reco : [250.0, 10000.0]
+Energy_Range_True : [200.0, 15000.0]
+
+
+# Temporal Model
+Light_Curve_Template : True # True = read the temporal shape from a table TIME vs NORM. False = 1 pulse from T90.
+Light_Curve_Input : /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV_fit_LC_table.fits
+Specfit_time_range : [5.120, 6.144]
+
+# Spectral Model
+Spectral_Model_Type : pflx # pflx or flnc
+Spectral_Model_Name : comp # plaw, comp, band, sbpl
+
+
