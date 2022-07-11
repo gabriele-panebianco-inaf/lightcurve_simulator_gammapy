@@ -1,4 +1,16 @@
-# Folders
+# extensions
+*.fits
+*.png
+*.zip
+*.tar.gz
+*.indx
+*.reg
+#*.ipynb
+*.md
+*.log
+*.coverage
+
+# folders
 __*
 __pycache__
 .ipynb_checkpoints
