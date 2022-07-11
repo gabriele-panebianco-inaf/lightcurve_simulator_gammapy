@@ -163,6 +163,7 @@ def Simulator(configuration, transient, output_directory):
 
 
     # Section 3: Define the Models
+    logger.info("Define the Temporal and Spectral Models.\n")
 
     # Define the Temporal Model
     if configuration['Light_Curve_Template']:
@@ -171,7 +172,12 @@ def Simulator(configuration, transient, output_directory):
                                                                             logger
                                                                           )
     else:
-        logger.error("TO BE IMPLEMENTED")
+        logger.warning("Light Curve temporal model shape not provided. Assuming Gaussian Pulse.")
+        Temporal_Model, correction_factor = Define_Gaussian_Pulse(trigger_time_t0,
+                                                                    configuration,
+                                                                    transient,
+                                                                    logger    
+                                                                )
 
     #
     logger.info(f"Currently here!")

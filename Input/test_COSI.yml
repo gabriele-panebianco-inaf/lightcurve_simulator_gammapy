@@ -31,12 +31,14 @@ Energy_Range_Reco : [250.0, 10000.0]
 Energy_Range_True : [200.0, 15000.0]
 
 
-# Models
-Light_Curve_Template : True # True = read the temporal shape from a table TIME vs NORM. False = 1 pulse from T90.
+# Temporal Model
+Light_Curve_Template : False # True = read the temporal shape from a table TIME vs NORM. False = 1 pulse from T90.
 Light_Curve_Input : /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV_fit_LC_table.fits
+Specfit_time_range : [5.120, 6.144]
 
+# Spectral Model
+Spectral_Model_Type : pflx # pflx or flnc
 
-Specfit_time_range     : [5.120, 6.144]
 Specfit_amplitude_unit : s-1 cm-2 keV-1
 Specfit_amplitude : 0.55
 Specfit_index     : -0.627
@@ -44,5 +46,3 @@ Specfit_epeak     : 259.50
 Specfit_erefe     : 100.00
 
 
-# Other
-Input_Light_Curve : /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV_fit_LC_table.fits

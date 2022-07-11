@@ -14,10 +14,13 @@ from matplotlib import ticker, cm
 from matplotlib.colors import LogNorm, PowerNorm
 
 import astropy.units as u
+from astropy.units import Quantity
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.table import Table, QTable, hstack
 from astropy.io import fits
+
+from scipy.special import erfinv
 
 import logging
 import os
@@ -39,7 +42,8 @@ from gammapy.modeling import Fit
 from gammapy.modeling.models import (
     ExpCutoffPowerLawSpectralModel,
     SkyModel,
-    LightCurveTemplateTemporalModel
+    LightCurveTemplateTemporalModel,
+    GaussianTemporalModel
 )
 from gammapy.utils.random import get_random_state
 
@@ -1007,8 +1011,75 @@ def Define_Template_Temporal_Model(trigger_time, configuration, logger):
     correction_factor = Time(correction_factor, format = 'mjd')
     
     correction_factor = Temporal_Model.integral(correction_factor[0], correction_factor[1])
+    correction_factor = 1.0 / correction_factor.to("")
+
+    logger.info(f"Spectral fit computed between (wrt Trigger Time): {spectral_fit_time_range}.")
     logger.info(f"Correction factor for time-integration: {np.round(correction_factor,3)}.\n")
 
+    return Temporal_Model, correction_factor
+
+
+def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
+    """
+    Return the Temporal Model and the correction factor for spectral normalization.
+    The correct spectral normalization is the fit normalization / correction_factor
+    because the fit normalization is a time-integrated average.
+    We assume the model is a Gaussian pulse.
+    The average is the temporal bin with highest flux in the GBM spectral analysis.
+    Average = pflx_spectrum_stop - pflx_spectrum_start
+    Sigma = T90 / (2 * np.sqrt(2)* erfinv(0.90)).
+
+    Parameters
+    ----------
+    trigger_time : `astropy.time.Time`
+        Trigger time.
+    configuration : dict
+        Dictionary with the parameters from the YAML file.
+    transient : `astropy.table.row.Row`
+        Row that contains the selected transient from the catalogue.
+    logger : `logging.Logger`
+        Logger from main.
+
+    Returns
+    -------
+    Temporal_Model : `gammapy.modeling.models.GaussianTemporalModel`
+        A Temporal Model for the SkyModel.
+    correction_factor : float        
+    """
+
+    # Set Average
+    pflx_spectrum_start = transient['pflx_spectrum_start']
+    pflx_spectrum_stop  = transient['pflx_spectrum_stop']
+    logger.info(f"Highest flux recorded in catalog between [{pflx_spectrum_start},{pflx_spectrum_stop}] from trigger time.")
+    average = trigger_time.mjd + pflx_spectrum_stop.to("day").value - pflx_spectrum_start.to("day").value
+    average = Time(average, format = 'mjd')
+    logger.info(f"Center Gaussian Pulse at MJD:{average}, i.e. {average.to_datetime()}.")
+
+    T90 = transient['t90']
+    logger.info(f"T90={T90}.")
+    sigma = T90 / (2*np.sqrt(2)*erfinv(0.90))
+    logger.info(f"Gaussian Pulse sigma={np.round(sigma,4)}.")
+
+    Temporal_Model = GaussianTemporalModel(t_ref = average.mjd * u.d, sigma = sigma)
+    logger.info(Temporal_Model)
+
+    # Evaluate correction factor
+
+    tstart_label = configuration['Spectral_Model_Type']+"_spectrum_start"
+    tstop_label  = configuration['Spectral_Model_Type']+"_spectrum_stop"
+
+    spectral_fit_time_range = Quantity([transient[tstart_label].unmasked, transient[tstop_label].unmasked])
+
+    correction_factor = [trigger_time.mjd + spectral_fit_time_range[0].to("day").value,
+                         trigger_time.mjd + spectral_fit_time_range[1].to("day").value
+                        ]
+    correction_factor = Time(correction_factor, format = 'mjd')
+    
+    correction_factor = Temporal_Model.integral(correction_factor[0], correction_factor[1])
+    correction_factor = 1.0 / correction_factor.to("")
+
+    logger.info(f"Spectral fit computed between (wrt Trigger Time): {spectral_fit_time_range}.")
+    logger.info(f"Correction factor for time-integration: {np.round(correction_factor,3)}.\n")
 
     return Temporal_Model, correction_factor
 
