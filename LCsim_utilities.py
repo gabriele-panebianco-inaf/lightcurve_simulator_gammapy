@@ -27,6 +27,7 @@ import os
 import yaml
 from yaml import SafeLoader
 from time import time
+from tqdm import tqdm
 
 # Gammapy imports
 from gammapy.data import Observation
@@ -1053,13 +1054,17 @@ def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
     pflx_spectrum_start = transient['pflx_spectrum_start']
     pflx_spectrum_stop  = transient['pflx_spectrum_stop']
     logger.info(f"Highest flux recorded in catalog between [{pflx_spectrum_start},{pflx_spectrum_stop}] from trigger time.")
-    average = trigger_time.mjd + pflx_spectrum_stop.to("day").value - pflx_spectrum_start.to("day").value
+    
+    average = trigger_time.mjd + (pflx_spectrum_stop.to("day").value + pflx_spectrum_start.to("day").value)/2.0
     average = Time(average, format = 'mjd')
-    logger.info(f"Center Gaussian Pulse at MJD:{average}, i.e. {average.to_datetime()}.")
+    logger.info(f"Center Gaussian Pulse at MJD:{average}, i.e. {average.to_datetime()}")
 
-    T90 = transient['t90']
-    logger.info(f"T90={T90}.")
-    sigma = T90 / (2*np.sqrt(2)*erfinv(0.90))
+    avg = average-trigger_time
+    logger.info(f"Center Gaussian Pulse at {avg.to(u.s)} wrt Trigger Time.")
+
+    t90 = transient['t90']
+    logger.info(f"T90={t90}.")
+    sigma = t90 / (2*np.sqrt(2)*erfinv(0.90))
     logger.info(f"Gaussian Pulse sigma={np.round(sigma,4)}.")
 
     Temporal_Model = GaussianTemporalModel(t_ref = average.mjd * u.d, sigma = sigma)
@@ -1209,7 +1214,17 @@ def Plot_Sky_Model(sky_model, configuration, transient, logger, energy_axis, tri
     obs_time_stop  = configuration['Observation_Time_Stop' ] * u.Unit(configuration['Time_Unit'])
 
     times_to_plot = np.linspace(obs_time_start, obs_time_stop, num=300)
-    norms_to_plot = sky_model.temporal_model.evaluate(trigger_time.mjd + times_to_plot.to("day").value)
+    
+    if isinstance(sky_model.temporal_model, GaussianTemporalModel):
+        tref = (sky_model.temporal_model.t_ref.value - trigger_time.mjd) * u.d
+        tref = tref.to("s")
+        sigma = sky_model.temporal_model.sigma
+        norms_to_plot = sky_model.temporal_model.evaluate(times_to_plot.value, tref.value, sigma.value)
+    elif isinstance(sky_model.temporal_model, LightCurveTemplateTemporalModel):
+        norms_to_plot = sky_model.temporal_model.evaluate(trigger_time.mjd + times_to_plot.to("day").value)
+    else:
+        raise NotImplementedError("Only Template Light Curve and Gaussian Pulse implemented")
+
     axs[1].plot(times_to_plot.value, norms_to_plot)
     
     title = f"Temporal Model {transient['name']}, {configuration['Name_Instrument']} {configuration['Name_Detector']}."
@@ -1226,8 +1241,18 @@ def Plot_Sky_Model(sky_model, configuration, transient, logger, energy_axis, tri
         handles.append(mlines.Line2D([], []))
 
     axs[0].legend(handles, labels)
-    axs[1].legend([mlines.Line2D([], []),mlines.Line2D([], [])],
-                  ["Trigger: "+trigger_time.value,f"Correction Factor: {correction_factor:.2f}"])
+
+    handles_t = [mlines.Line2D([], []),mlines.Line2D([], [])]
+    labels_t = ["Trigger: "+trigger_time.value,f"Correction Factor: {correction_factor:.2f}"]
+
+    if isinstance(sky_model.temporal_model, GaussianTemporalModel):
+        labels_t.append(sky_model.temporal_model.t_ref.name+f": {tref.value:.2e} [{tref.unit.to_string()}]")
+        labels_t.append(sky_model.temporal_model.sigma.name+f": {sigma.value:.2e} [{sigma.unit.to_string()}]")
+        handles_t.append(mlines.Line2D([], []))
+        handles_t.append(mlines.Line2D([], []))
+
+
+    axs[1].legend(handles_t, labels_t)
 
     # Save Figure
     figure_name = output_directory + "Models"+FIGURE_FORMAT

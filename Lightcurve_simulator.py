@@ -201,8 +201,100 @@ def Simulator(configuration, transient, output_directory):
 
 
     # Section 4 - Perform the simulations
+    N_Light_Curves = configuration['N_Light_Curves']
+
+    logger.info(f"Perform the simulation of {N_Light_Curves} Light Curves.")
+    logger.info(f"Each Light Curve will contain {observations_number} points.")
+
+    # Create a List of `Datasets`, each will be a Light curve
+    List_of_Datasets = []
+    # Fill it with empty `Datasets`
+    for i_LC in range(N_Light_Curves):
+        List_of_Datasets.append(Datasets())
+
+    # Create an empty `SpectrumDataset` object to host geometry and energy info.
+    empty = SpectrumDataset.create(geom = geom,
+                                   energy_axis_true = axis_energy_true,
+                                   name = "empty",
+                                   edisp = Energy_Dispersion_Matrix_Map
+                                  )
+
+    # Create Maker object.
+    # containment_correction must be set True if I have a PSF, to adapt the
+    # exposure map and account for PSF broadening and the PSF containment.
+    maker = SpectrumDatasetMaker(selection = ["exposure", "background"],
+                                 containment_correction = False
+                                )
+
+    # This mock light curve will store info on the predicted background and excess rates.
+    # It won't contain any simulation.
+    datasets_generic = Datasets()
+
+    LOOP_START = time()
+
+    for idx in tqdm(range(observations_number), desc='Loop observations'):
+        #logger.info(f'Creating Dataset {idx+1}/{observations_number}...             \r', end = '')
+
+        # Set the current observation. Observations differ only in their starting time.
+        obs = Observation.create(pointing      = pointing,
+                                 livetime      = observations_livetimes[idx],
+                                 tstart        = observations_start[idx],
+                                 irfs          = IRFs,
+                                 reference_time= trigger_time_t0,
+                                 obs_id        = idx
+                                )
+
+        # Set name according to observation number. Set geometry and energy information.
+        dataset_generic = empty.copy(name = f"dataset-{idx}")
+
+        # Run: creates the SpectrumDataset. It also sets the Background counts.
+        dataset_generic = maker.run(dataset_generic, obs)
+
+        # Set the Energy Disperison    
+        dataset_generic.edisp = Energy_Dispersion_Matrix_Map
+
+        # Set the source model and compute the predicted excess counts from it.
+        dataset_generic.models = model_simulations
+
+        # For this observation simulate background and counts for each different light curve
+        for i_LC in range(N_Light_Curves):
+
+            dataset = dataset_generic.copy(name = f"LC-{i_LC}"+f"--Dataset-{idx}")
+
+            # Set models, that CANNOT BE COPIED
+            dataset.models = model_simulations
+
+            # Simulate counts from Poisson(avg=Predicted Backgrounds+Predicted count excess)
+            dataset.fake()
+
+            # Add this dataset to the right collection.
+            datasets = List_of_Datasets[i_LC]
+            datasets.append(dataset)
+
+        datasets_generic.append(dataset_generic)
 
 
+        # Repeat for a new observation.
+
+    logger.info(f"Loop Runtime = {np.round(time()-LOOP_START,3)} s.\n")
+
+
+    # Section 5 - Export
+    hdu_list = []
+    hdu_list.append(fits.PrimaryHDU())
+
+    qtable = QTable(datasets_generic.info_table())
+    hdu_list.append(fits.table_to_hdu(qtable))
+
+    for i_LC in tqdm(range(N_Light_Curves),desc='Writing Light Curves'):
+        qtable = QTable(List_of_Datasets[i_LC].info_table())
+        hdu_list.append(fits.table_to_hdu(qtable))
+
+    hdu_list = fits.HDUList(hdu_list)
+
+    logger.info(f"Write Lightcurves: {output_directory}lightcurves.fits")
+    hdu_list.writeto(output_directory+"lightcurves.fits", overwrite=True)
+    
 
 
     return None
@@ -218,20 +310,20 @@ if __name__ == '__main__':
     )
     logger = logging.getLogger(__name__)
     
-    # Print message with initial info
+    # 1 - Print message with initial info
     Welcome(logger)
 
-    # Set Script Arguments
+    # 2 - Set Script Arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--configurationfile", help="name of the configuration YAML file")
     args = parser.parse_args()
 
-    # 1 - Load Configuration YAML file and Choose a Transient
+    # 3 - Load Configuration YAML file and Choose a Transient
     configuration, transient, output_directory = Initialize(logger, args.configurationfile)
     
-    # 2 - Execute the simulator
+    # 4 - Execute the simulator (Main function)
     Simulator(configuration, transient, output_directory)
 
-    # Goodbye
+    # 5 - Goodbye
     Goodbye(logger, EXECUTION_TIME_START)
 
