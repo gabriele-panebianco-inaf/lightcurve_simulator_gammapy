@@ -239,7 +239,6 @@ def Simulator(configuration, transient, output_directory):
     LOOP_START = time()
 
     for idx in tqdm(range(observations_number), desc='Loop observations'):
-        #logger.info(f'Creating Dataset {idx+1}/{observations_number}...             \r', end = '')
 
         # Set the current observation. Observations differ only in their starting time.
         obs = Observation.create(pointing      = pointing,
@@ -285,21 +284,15 @@ def Simulator(configuration, transient, output_directory):
     logger.info(f"Loop Runtime = {np.round(time()-LOOP_START,3)} s.\n")
 
 
-    # Section 5 - Export
-    hdu_list = []
-    hdu_list.append(fits.PrimaryHDU())
+    # Section 5 - Export Results
+    Time_Centroids = observations_start - trigger_time_t0
+    Time_Centroids = Time_Centroids.to("s") + observations_livetimes/2.0
 
-    qtable = QTable(datasets_generic.info_table())
-    hdu_list.append(fits.table_to_hdu(qtable))
-
-    for i_LC in tqdm(range(N_Light_Curves),desc='Writing Light Curves'):
-        qtable = QTable(List_of_Datasets[i_LC].info_table())
-        hdu_list.append(fits.table_to_hdu(qtable))
-
-    hdu_list = fits.HDUList(hdu_list)
-
-    logger.info(f"Write Lightcurves: {output_directory}lightcurves.fits")
-    hdu_list.writeto(output_directory+"lightcurves.fits", overwrite=True)
+    Write_Light_Curves(Time_Centroids, List_of_Datasets, logger, output_directory)
+    
+    # 6 - Print the simulated light curves
+    Print_Light_Curves(Time_Centroids, List_of_Datasets, output_directory, configuration, transient)
+    
     
 
 
