@@ -29,8 +29,13 @@ def Simulator(configuration, transient, output_directory):
     trigger_time_t0 = Define_Reference_Time(transient, TimeMapAxis.time_format, logger)
 
     # Define Pointing Direction (FoV Centre) as SkyCoord
-    pointing = SkyCoord(transient['ra'].value, transient['dec'].value,
-                        unit = transient['ra'].unit, frame = 'fk5', equinox='J2000')
+    pointing = SkyCoord(
+                transient['ra'].value,
+                transient['dec'].value,
+                unit = transient['ra'].unit,
+                frame = 'fk5',
+                equinox='J2000'
+                )
     logger.info(f"Define Pointing Direction: {pointing}.\n")
 
     # Define Instrument FoV Axes: Offset, FovLon, FoVLat
@@ -42,8 +47,6 @@ def Simulator(configuration, transient, output_directory):
                                                                                        logger
                                                                                       )
 
-    # Load the Empirical Light Curve for Comparison
-    # -----------------TO DO?
 
 
 
