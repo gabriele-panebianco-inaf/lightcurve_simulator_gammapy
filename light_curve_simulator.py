@@ -239,7 +239,6 @@ def Simulator(configuration, transient, output_directory):
     LOOP_START = time()
 
     for idx in tqdm(range(observations_number), desc='Loop observations'):
-        #logger.info(f'Creating Dataset {idx+1}/{observations_number}...             \r', end = '')
 
         # Set the current observation. Observations differ only in their starting time.
         obs = Observation.create(pointing      = pointing,

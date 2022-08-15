@@ -166,6 +166,8 @@ def Define_Reference_Time(transient, time_format, logger):
     trigger_time = Time(transient['trigger_time'], format='mjd', scale='utc')
     trigger_time.format = time_format
 
+    trigger_time = trigger_time.tt
+
     logger.info(f"Define Trigger Time (format={time_format}): {trigger_time}.\n")
     return trigger_time
 
@@ -471,6 +473,8 @@ def Print_Light_Curves(Time_Centroids, List_of_Datasets, output_directory, confi
     transient : `astropy.table.row.Row`
         Row that contains the selected transient from the catalogue.
     """
+
+    # Simulated Light Curves
     figure_name = f"{output_directory}light_curves"+FIGURE_FORMAT
     pp = PdfPages(figure_name)
 
@@ -479,7 +483,7 @@ def Print_Light_Curves(Time_Centroids, List_of_Datasets, output_directory, confi
         fig, ax = plt.subplots(1, figsize = (15, 5), constrained_layout=True )
         title = f"Simulated Light {i_LC+1}/{len(List_of_Datasets)} Curve from {configuration['Name_Instrument']}"
         title+= f" {configuration['Name_Detector']}, {transient['name']}. "
-        title+= f"Energy range [{configuration['Energy_Range_True'][0]}, {configuration['Energy_Range_True'][1]}] {u.Unit(configuration['Energy_Unit'])}."
+        title+= f"Energy range [{configuration['Energy_Range_Reco'][0]}, {configuration['Energy_Range_Reco'][1]}] {u.Unit(configuration['Energy_Unit'])}."
 
         counts = List_of_Datasets[i_LC].info_table()['counts']
         uncertainties = np.sqrt(counts)
@@ -502,6 +506,35 @@ def Print_Light_Curves(Time_Centroids, List_of_Datasets, output_directory, confi
         pp.savefig(fig)
 
     pp.close()
+
+    # Predicted Background and Signal
+
+
+    figure_name = f"{output_directory}model_prediction"+FIGURE_FORMAT
+    pp = PdfPages(figure_name)
+
+    fig, ax = plt.subplots(1, figsize = (15, 5), constrained_layout=True )
+    title = f"Predicted counts from Models and IRFs. Curve from {configuration['Name_Instrument']}"
+    title+= f" {configuration['Name_Detector']}, {transient['name']}. "
+    title+= f"Energy range [{configuration['Energy_Range_Reco'][0]}, {configuration['Energy_Range_Reco'][1]}] {u.Unit(configuration['Energy_Unit'])}."
+
+    signal = List_of_Datasets[0].info_table()['npred_signal']
+    background = List_of_Datasets[0].info_table()['npred_background']
+    counts = List_of_Datasets[0].info_table()['npred']
+    widths = List_of_Datasets[0].info_table()['livetime'].value
+    ax.step(Time_Centroids.value, counts,label = f"Counts: signal+bkgd", color = 'C1', where = 'mid')
+    ax.step(Time_Centroids.value, signal,label = f"Signal", color = 'C2', where = 'mid')
+    ax.step(Time_Centroids.value, background,label = f"Background", color = 'C0', where = 'mid')
+    ax.set_xlabel('Time [s]', fontsize = 'large')
+    ax.set_ylabel('Predicted Counts', fontsize = 'large')
+    ax.set_title(title, fontsize = 'large')
+    ax.grid()
+    ax.legend()
+    pp.savefig(fig)
+
+    pp.close()
+
+
     return None
 
 
