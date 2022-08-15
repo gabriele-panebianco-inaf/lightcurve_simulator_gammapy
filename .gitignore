@@ -1,19 +1,18 @@
 # Extensions
-*.fits
-*.png
-*.zip
-*.tar.gz
-*.reg
+#*.fits
+#*.png
+#*.zip
+#*.tar.gz
 #*.ipynb
-*.log
+#*.log
 
 # Folders
 __*
+#Archive
+#Input
+Output
+Trash
 .ipynb_checkpoints
-.old_files
-archives
-Input/GRB*
-Output/*A
 
 # Files
-Tutorial*
+Input/GRB*
