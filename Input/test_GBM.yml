@@ -1,5 +1,5 @@
 # Simulation Parameters
-Input_Catalogue: /home/gabriele/Documents/gammapy/LCsim/archives/GBM_bursts.fits
+Input_Catalogue: /home/gabriele/Documents/gammapy/LCsim/Archive/GBM_bursts.fits
 Name_Transient : GRB160530667  # null = sample randomly
 Random_Seed    : 7             # Ignored if transient name is set
 N_Light_Curves : 4

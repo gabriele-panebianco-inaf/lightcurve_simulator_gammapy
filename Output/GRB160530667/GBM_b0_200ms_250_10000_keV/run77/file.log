@@ -1,15 +1,15 @@
-2022-07-11 18:25:26,449. INFO: Configuration. YAML File : Input/test_GBM.yml
-2022-07-11 18:25:26,449. INFO: Configuration. Source Catalogue: /home/gabriele/Documents/gammapy/LCsim/archives/GBM_bursts.fits
-2022-07-11 18:25:26,449. INFO: Configuration. Requested Transient Name: GRB160530667
-2022-07-11 18:25:26,449. INFO: Configuration. Output Directory: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/ 
+2022-08-15 16:50:39,883. INFO: Configuration. YAML File : Input/test_GBM.yml
+2022-08-15 16:50:39,883. INFO: Configuration. Source Catalogue: /home/gabriele/Documents/gammapy/LCsim/Archive/GBM_bursts.fits
+2022-08-15 16:50:39,883. INFO: Configuration. Requested Transient Name: GRB160530667
+2022-08-15 16:50:39,883. INFO: Configuration. Output Directory: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/ 
 
-2022-07-11 18:25:26,451. INFO: Define Trigger Time (format=iso): 2016-05-30 16:01:11.828.
+2022-08-15 16:50:39,885. INFO: Define Trigger Time (format=iso): 2016-05-30 16:01:11.828.
 
-2022-07-11 18:25:26,453. INFO: Define Pointing Direction: <SkyCoord (FK5: equinox=J2000.000): (ra, dec) in deg
+2022-08-15 16:50:39,887. INFO: Define Pointing Direction: <SkyCoord (FK5: equinox=J2000.000): (ra, dec) in deg
     (133.48, 43.48)>.
 
-2022-07-11 18:25:26,453. INFO: Define Instrument FoV Axes.
-2022-07-11 18:25:26,454. INFO: MapAxis
+2022-08-15 16:50:39,887. INFO: Define Instrument FoV Axes.
+2022-08-15 16:50:39,887. INFO: MapAxis
 
 	name       : offset    
 	unit       : 'deg'     
@@ -19,7 +19,7 @@
 	edges max  : 5.0e+00 deg
 	interp     : lin       
 
-2022-07-11 18:25:26,454. INFO: MapAxis
+2022-08-15 16:50:39,888. INFO: MapAxis
 
 	name       : fov_lon   
 	unit       : 'deg'     
@@ -29,7 +29,7 @@
 	edges max  : 2.5e+00 deg
 	interp     : lin       
 
-2022-07-11 18:25:26,454. INFO: MapAxis
+2022-08-15 16:50:39,888. INFO: MapAxis
 
 	name       : fov_lat   
 	unit       : 'deg'     
@@ -39,21 +39,21 @@
 	edges max  : 2.5e+00 deg
 	interp     : lin       
 
-2022-07-11 18:25:26,455. INFO: Define the Observations' schedule.
-2022-07-11 18:25:26,460. INFO: Number of Observations: 124.
-2022-07-11 18:25:26,460. INFO: Observation start: 2016-05-30 16:01:06.828.
-2022-07-11 18:25:26,460. INFO: Observation start wrt Trigger Time: -5.0 s.
-2022-07-11 18:25:26,461. INFO: Observation stop  wrt Trigger Time: 20.0 s.
-2022-07-11 18:25:26,461. INFO: Observation livetime: 0.2016 s.
+2022-08-15 16:50:39,889. INFO: Define the Observations' schedule.
+2022-08-15 16:50:39,896. INFO: Number of Observations: 124.
+2022-08-15 16:50:39,896. INFO: Observation start: 2016-05-30 16:01:06.828.
+2022-08-15 16:50:39,896. INFO: Observation start wrt Trigger Time: -5.0 s.
+2022-08-15 16:50:39,896. INFO: Observation stop  wrt Trigger Time: 20.0 s.
+2022-08-15 16:50:39,896. INFO: Observation livetime: 0.2016 s.
 
-2022-07-11 18:25:26,461. INFO: Responses for instrument: GBM, detector b0.
+2022-08-15 16:50:39,896. INFO: Responses for instrument: GBM, detector b0.
 
-2022-07-11 18:25:26,469. INFO: Define Reconstructed Energy Axis
-2022-07-11 18:25:26,469. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
-2022-07-11 18:25:26,470. INFO: Original Energy Range: [116.24, 50000.0] keV. Energy bins: 128.
-2022-07-11 18:25:26,470. INFO: Slice between indexes [2,90].
-2022-07-11 18:25:26,471. INFO: Final Energy range: [254.011, 9854.985] keV. Energy bins: 88.
-2022-07-11 18:25:26,471. INFO: MapAxis
+2022-08-15 16:50:39,905. INFO: Define Reconstructed Energy Axis
+2022-08-15 16:50:39,905. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
+2022-08-15 16:50:39,906. INFO: Original Energy Range: [116.24, 50000.0] keV. Energy bins: 128.
+2022-08-15 16:50:39,907. INFO: Slice between indexes [2,90].
+2022-08-15 16:50:39,907. INFO: Final Energy range: [254.011, 9854.985] keV. Energy bins: 88.
+2022-08-15 16:50:39,907. INFO: MapAxis
 
 	name       : energy    
 	unit       : 'keV'     
@@ -63,12 +63,12 @@
 	edges max  : 9.9e+03 keV
 	interp     : log       
 
-2022-07-11 18:25:26,494. INFO: Define True Energy Axis
-2022-07-11 18:25:26,495. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
-2022-07-11 18:25:26,496. INFO: Original Energy Range: [100.056, 200000.0] keV. Energy bins: 140.
-2022-07-11 18:25:26,496. INFO: Slice between indexes [13,92].
-2022-07-11 18:25:26,497. INFO: Final Energy range: [202.546, 14765.5] keV. Energy bins: 79.
-2022-07-11 18:25:26,497. INFO: MapAxis
+2022-08-15 16:50:39,932. INFO: Define True Energy Axis
+2022-08-15 16:50:39,932. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
+2022-08-15 16:50:39,933. INFO: Original Energy Range: [100.056, 200000.0] keV. Energy bins: 140.
+2022-08-15 16:50:39,933. INFO: Slice between indexes [13,92].
+2022-08-15 16:50:39,934. INFO: Final Energy range: [202.546, 14765.5] keV. Energy bins: 79.
+2022-08-15 16:50:39,934. INFO: MapAxis
 
 	name       : energy_true
 	unit       : 'keV'     
@@ -78,8 +78,8 @@
 	edges max  : 1.5e+04 keV
 	interp     : log       
 
-2022-07-11 18:25:26,498. INFO: Define Source Geometry.
-2022-07-11 18:25:26,504. INFO: RegionGeom
+2022-08-15 16:50:39,934. INFO: Define Source Geometry.
+2022-08-15 16:50:39,939. INFO: RegionGeom
 
 	region     : CircleSkyRegion
 	axes       : ['lon', 'lat', 'energy']
@@ -88,18 +88,18 @@
 	frame      : fk5
 	center     : 133.5 deg, 43.5 deg
 
-2022-07-11 18:25:26,520. INFO: Read Detector Response Matrix from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
-2022-07-11 18:25:26,553. INFO: Original True Energy Range: [100.0, 200000.0] keV. Energy bins: 140.
-2022-07-11 18:25:26,554. INFO: Original Reco Energy Range: [115.19599914550781, 50000.0] keV. Energy bins: 128.
-2022-07-11 18:25:26,554. INFO: Slice True Energies between indexes [13,92]
-2022-07-11 18:25:26,554. INFO: Slice Reco Energies between indexes [2,90]
-2022-07-11 18:25:26,554. INFO: Response Matrix defined at True Energy Range: [202.54600524902344, 14765.5] keV. Energy bins: 79.
-2022-07-11 18:25:26,554. INFO: Response Matrix defined at Reco Energy Range: [254.01100158691406, 9854.9853515625] keV. Energy bins: 88.
-2022-07-11 18:25:26,555. INFO: Response Matrix unit: cm2.
+2022-08-15 16:50:39,955. INFO: Read Detector Response Matrix from: /home/gabriele/Documents/fermiGBM/FermiData/bn160530667/glg_cspec_b0_bn160530667_v00.rsp
+2022-08-15 16:50:39,987. INFO: Original True Energy Range: [100.0, 200000.0] keV. Energy bins: 140.
+2022-08-15 16:50:39,987. INFO: Original Reco Energy Range: [115.19599914550781, 50000.0] keV. Energy bins: 128.
+2022-08-15 16:50:39,988. INFO: Slice True Energies between indexes [13,92]
+2022-08-15 16:50:39,988. INFO: Slice Reco Energies between indexes [2,90]
+2022-08-15 16:50:39,988. INFO: Response Matrix defined at True Energy Range: [202.54600524902344, 14765.5] keV. Energy bins: 79.
+2022-08-15 16:50:39,988. INFO: Response Matrix defined at Reco Energy Range: [254.01100158691406, 9854.9853515625] keV. Energy bins: 88.
+2022-08-15 16:50:39,988. INFO: Response Matrix unit: cm2.
 
-2022-07-11 18:25:26,555. INFO: Compute Effective Area.
-2022-07-11 18:25:26,555. INFO: Assume Effective Area is constant in the Instrument FoV
-2022-07-11 18:25:26,555. INFO: EffectiveAreaTable2D
+2022-08-15 16:50:39,989. INFO: Compute Effective Area.
+2022-08-15 16:50:39,989. INFO: Assume Effective Area is constant in the Instrument FoV
+2022-08-15 16:50:39,989. INFO: EffectiveAreaTable2D
 --------------------
 
   axes  : ['energy_true', 'offset']
@@ -108,30 +108,30 @@
   unit  : cm2
   dtype : float64
 
-2022-07-11 18:25:26,555. INFO: Total effective area: 11425.90371336033 cm2.
-2022-07-11 18:25:26,694. INFO: Saving Effective area plot: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_effective_area.pdf
+2022-08-15 16:50:39,989. INFO: Total effective area: 11425.90371336033 cm2.
+2022-08-15 16:50:40,130. INFO: Saving Effective area plot: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_effective_area.pdf
 
-2022-07-11 18:25:27,292. INFO: Compute Energy Dispersion Matrix
-2022-07-11 18:25:27,298. WARNING: Normalization to 1 applied: assuming no lost photons.
-2022-07-11 18:25:27,299. INFO: Exposure Map of Energy Dispersion set.
-2022-07-11 18:25:27,388. INFO: Saving Energy Dispersion Matrix plot : /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_energy_dispersion_matrix.pdf
+2022-08-15 16:50:40,697. INFO: Compute Energy Dispersion Matrix
+2022-08-15 16:50:40,702. WARNING: Normalization to 1 applied: assuming no lost photons.
+2022-08-15 16:50:40,702. INFO: Exposure Map of Energy Dispersion set.
+2022-08-15 16:50:40,773. INFO: Saving Energy Dispersion Matrix plot : /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_energy_dispersion_matrix.pdf
 
-2022-07-11 18:25:27,774. INFO: Read the Background Spectral Model from BAK file: /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
-2022-07-11 18:25:27,786. WARNING: RATE unit not found. Using 1/s
-2022-07-11 18:25:27,786. WARNING: Energy unit not found. Using keV
-2022-07-11 18:25:27,794. INFO: Original Reco Energy Range: [113.24800109863281, 50000.0] keV. Energy bins: 128.
-2022-07-11 18:25:27,794. INFO: Slice Energies between indexes [2,91]
-2022-07-11 18:25:27,795. INFO: Background Spectral Model defined at Reco Energy Range: [250.7729949951172, 10067.7666015625] keV. Energy bins: 89.
-2022-07-11 18:25:27,795. INFO: Background Spectral Model defined with unit 1 / (keV s sr)
+2022-08-15 16:50:41,118. INFO: Read the Background Spectral Model from BAK file: /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
+2022-08-15 16:50:41,133. WARNING: RATE unit not found. Using 1/s
+2022-08-15 16:50:41,133. WARNING: Energy unit not found. Using keV
+2022-08-15 16:50:41,141. INFO: Original Reco Energy Range: [113.24800109863281, 50000.0] keV. Energy bins: 128.
+2022-08-15 16:50:41,142. INFO: Slice Energies between indexes [2,91]
+2022-08-15 16:50:41,142. INFO: Background Spectral Model defined at Reco Energy Range: [250.7729949951172, 10067.7666015625] keV. Energy bins: 89.
+2022-08-15 16:50:41,142. INFO: Background Spectral Model defined with unit 1 / (keV s sr)
 
-2022-07-11 18:25:27,795. WARNING: GBM wants another Reco Energy Axis for the Background, taken from BAK, not RSP.
-2022-07-11 18:25:27,802. INFO: Define Reconstructed Energy Axis
-2022-07-11 18:25:27,802. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
-2022-07-11 18:25:27,803. WARNING: Energy Axis file has adimensional values. Correct into keV
-2022-07-11 18:25:27,804. INFO: Original Energy Range: [114.283, 50000.0] keV. Energy bins: 128.
-2022-07-11 18:25:27,805. INFO: Slice between indexes [2,91].
-2022-07-11 18:25:27,805. INFO: Final Energy range: [250.773, 10067.767] keV. Energy bins: 89.
-2022-07-11 18:25:27,805. INFO: MapAxis
+2022-08-15 16:50:41,142. WARNING: GBM wants another Reco Energy Axis for the Background, taken from BAK, not RSP.
+2022-08-15 16:50:41,150. INFO: Define Reconstructed Energy Axis
+2022-08-15 16:50:41,150. INFO: Read Axis from: /home/gabriele/Documents/fermiGBM/Output/GRB_160530_A/b0_200ms_250_10000_keV.bak
+2022-08-15 16:50:41,150. WARNING: Energy Axis file has adimensional values. Correct into keV
+2022-08-15 16:50:41,151. INFO: Original Energy Range: [114.283, 50000.0] keV. Energy bins: 128.
+2022-08-15 16:50:41,152. INFO: Slice between indexes [2,91].
+2022-08-15 16:50:41,152. INFO: Final Energy range: [250.773, 10067.767] keV. Energy bins: 89.
+2022-08-15 16:50:41,152. INFO: MapAxis
 
 	name       : energy    
 	unit       : 'keV'     
@@ -141,8 +141,8 @@
 	edges max  : 1.0e+04 keV
 	interp     : log       
 
-2022-07-11 18:25:27,806. INFO: Assume background is constant in the Instrument FoV
-2022-07-11 18:25:27,806. INFO: Background3D
+2022-08-15 16:50:41,153. INFO: Assume background is constant in the Instrument FoV
+2022-08-15 16:50:41,153. INFO: Background3D
 ------------
 
   axes  : ['energy', 'fov_lon', 'fov_lat']
@@ -151,33 +151,33 @@
   unit  : 1 / (keV s sr)
   dtype : float64
 
-2022-07-11 18:25:27,844. INFO: Saving Background Spectral Model plot : /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_background_spectrum.pdf
+2022-08-15 16:50:41,178. INFO: Saving Background Spectral Model plot : /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/IRF_background_spectrum.pdf
 
-2022-07-11 18:25:28,144. INFO: Define the Temporal and Spectral Models.
+2022-08-15 16:50:41,442. INFO: Define the Temporal and Spectral Models.
 
-2022-07-11 18:25:28,144. WARNING: Light Curve temporal model shape not provided. Assuming Gaussian Pulse.
-2022-07-11 18:25:28,145. INFO: Highest flux recorded in catalog between [5.12 s,6.144 s] from trigger time.
-2022-07-11 18:25:28,146. INFO: Center Gaussian Pulse at MJD:57538.667563200186, i.e. 2016-05-30 16:01:17.460496
-2022-07-11 18:25:28,146. INFO: Center Gaussian Pulse at 5.632000230252743 s wrt Trigger Time.
-2022-07-11 18:25:28,146. INFO: T90=9.02415 s.
-2022-07-11 18:25:28,147. INFO: Gaussian Pulse sigma=2.7431 s.
-2022-07-11 18:25:28,147. INFO: GaussianTemporalModel
+2022-08-15 16:50:41,442. WARNING: Light Curve temporal model shape not provided. Assuming Gaussian Pulse.
+2022-08-15 16:50:41,443. INFO: Highest flux recorded in catalog between [5.12 s,6.144 s] from trigger time.
+2022-08-15 16:50:41,443. INFO: Center Gaussian Pulse at MJD:57538.667563200186, i.e. 2016-05-30 16:01:17.460496
+2022-08-15 16:50:41,444. INFO: Center Gaussian Pulse at 5.632000230252743 s wrt Trigger Time.
+2022-08-15 16:50:41,444. INFO: T90=9.02415 s.
+2022-08-15 16:50:41,444. INFO: Gaussian Pulse sigma=2.7431 s.
+2022-08-15 16:50:41,445. INFO: GaussianTemporalModel
 
   type    name   value    unit   error   min max frozen is_norm link
 -------- ----- ---------- ---- --------- --- --- ------ ------- ----
 temporal t_ref 5.7539e+04    d 0.000e+00 nan nan  False   False     
 temporal sigma 2.7431e+00    s 0.000e+00 nan nan  False   False     
-2022-07-11 18:25:28,152. INFO: Spectral fit computed between (wrt Trigger Time): [5.12  6.144] s.
-2022-07-11 18:25:28,152. INFO: Correction factor for time-integration: 1.006.
+2022-08-15 16:50:41,449. INFO: Spectral fit computed between (wrt Trigger Time): [5.12  6.144] s.
+2022-08-15 16:50:41,449. INFO: Correction factor for time-integration: 1.006.
 
-2022-07-11 18:25:28,152. INFO: Spectral Model Type: pflx
-2022-07-11 18:25:28,152. INFO: Spectral Model Name: comp
-2022-07-11 18:25:28,152. INFO: Transient Amplitude: 0.55153924 1 / (cm2 keV s)
-2022-07-11 18:25:28,152. INFO: Transient Index: -0.62706935
-2022-07-11 18:25:28,152. INFO: Transient Peak Energy: 259.50232 keV
-2022-07-11 18:25:28,153. INFO: Transient Pivot Energy: 100.0 keV
-2022-07-11 18:25:28,153. INFO: Convert parameters of GBM Model into parameters of Gammapy Model
-2022-07-11 18:25:28,154. INFO: ExpCutoffPowerLawSpectralModel
+2022-08-15 16:50:41,449. INFO: Spectral Model Type: pflx
+2022-08-15 16:50:41,449. INFO: Spectral Model Name: comp
+2022-08-15 16:50:41,449. INFO: Transient Amplitude: 0.55153924 1 / (cm2 keV s)
+2022-08-15 16:50:41,450. INFO: Transient Index: -0.62706935
+2022-08-15 16:50:41,450. INFO: Transient Peak Energy: 259.50232 keV
+2022-08-15 16:50:41,450. INFO: Transient Pivot Energy: 100.0 keV
+2022-08-15 16:50:41,450. INFO: Convert parameters of Comptonized GBM Model into parameters of Gammapy Model
+2022-08-15 16:50:41,451. INFO: ExpCutoffPowerLawSpectralModel
 
   type      name     value         unit        error   min max frozen is_norm link
 -------- --------- ---------- -------------- --------- --- --- ------ ------- ----
@@ -186,12 +186,12 @@ spectral amplitude 5.5474e-01 cm-2 keV-1 s-1 0.000e+00 nan nan  False    True
 spectral reference 1.0000e+02            keV 0.000e+00 nan nan   True   False     
 spectral   lambda_ 5.2906e-03          keV-1 0.000e+00 nan nan  False   False     
 spectral     alpha 1.0000e+00                0.000e+00 nan nan   True   False     
-2022-07-11 18:25:28,158. INFO: Define the Sky Model: Spectral Model * Temporal Model
-2022-07-11 18:25:28,205. INFO: Saving Model plot: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/Models.pdf
+2022-08-15 16:50:41,454. INFO: Define the Sky Model: Spectral Model * Temporal Model
+2022-08-15 16:50:41,500. INFO: Saving Model plot: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/Models.pdf
 
-2022-07-11 18:25:28,539. INFO: Perform the simulation of 4 Light Curves.
-2022-07-11 18:25:28,539. INFO: Each Light Curve will contain 124 points.
-2022-07-11 18:25:45,459. INFO: Loop Runtime = 16.912 s.
+2022-08-15 16:50:41,814. INFO: Perform the simulation of 4 Light Curves.
+2022-08-15 16:50:41,815. INFO: Each Light Curve will contain 124 points.
+2022-08-15 16:50:57,347. INFO: Loop Runtime = 15.524 s.
 
-2022-07-11 18:25:49,900. INFO: Write Lightcurves: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/lightcurves.fits
-2022-07-11 18:25:49,936. INFO: Total Runtime =  25.496 s. Goodbye!
+2022-08-15 16:51:01,853. INFO: Write Lightcurves: /home/gabriele/Documents/gammapy/LCsim/Output/GRB160530667/GBM_b0_200ms_250_10000_keV/run77/lightcurves.fits
+2022-08-15 16:51:01,890. INFO: Total Runtime =  23.98 s. Goodbye!

@@ -1,7 +1,7 @@
 from time import time
 EXECUTION_TIME_START = time()
 
-from LCsim_utilities import *
+from simulator_configurator import *
 from simulator_irfs import *
 from simulator_models import *
 
@@ -189,7 +189,8 @@ def Simulator(configuration, transient, output_directory):
     Spectral_Model = Define_Spectral_Model(configuration,
                                             transient,
                                             logger,
-                                            correction_factor
+                                            correction_factor,
+                                            axis_energy_true
                                         )
 
     # Implement Sky Model

@@ -12,20 +12,51 @@ from astropy.table import Table, QTable
 
 from scipy.special import erfinv
 
-import logging
-import os
-import yaml
-
 # Gammapy imports
 from gammapy.modeling.models import (
     ExpCutoffPowerLawSpectralModel,
     SkyModel,
     LightCurveTemplateTemporalModel,
-    GaussianTemporalModel
+    GaussianTemporalModel,
+    TemplateSpectralModel
 )
-from gammapy.utils.random import get_random_state
+
 
 FIGURE_FORMAT = ".pdf"
+
+class GBM_Band_Spectral_Function:
+    def __init__(self, amplitude, alpha, beta, Epeak, Epiv=100*u.keV):
+        self.amplitude = amplitude
+        self.alpha     = alpha
+        self.beta      = beta
+        self.Epeak     = Epeak
+        self.Epiv      = Epiv
+        self.Estar     = ((self.alpha-self.beta)/(2.0+self.alpha))*self.Epeak
+
+    def _eval_lower(self, energies):
+        ene = energies/self.Epiv
+        enb = energies/self.Epeak
+        return self.amplitude*np.power(ene.to(""), self.alpha)*np.exp(-(2+self.alpha)*enb.to(""))
+
+    def _eval_upper(self, energies):
+        ene = energies/self.Epiv
+        epp = self.Epeak/self.Epiv
+        amp = self.amplitude*np.power(epp.to("")*(self.alpha-self.beta)/(2.0+self.alpha), self.alpha-self.beta)*np.exp(self.beta-self.alpha)
+        return amp*np.power(ene.to(""), self.beta)
+    
+    def evaluate(self, energies):
+        """
+        Evaluate Band function. It is a step function:
+        F(E)= A * [E/Epiv]^alpha*exp[-(2+alpha)*E/Epeak]    if E < Estar
+        F(E)= A*[((alpha-beta)/(2+alpha))*(Epeak/Epiv)]^(alpha-beta)*exp(beta-alpha) * (E/Epiv)^beta    if E > Estar
+        Estar = ((alpha-beta)/(2+alpha))*Epeak
+        """
+        band_low_energies  = self._eval_lower(energies[energies<self.Estar])
+        band_high_energies = self._eval_lower(energies[energies>self.Estar])
+        return np.append(band_low_energies, band_high_energies)
+
+    
+
 
 
 
@@ -163,7 +194,7 @@ def Define_Gaussian_Pulse(trigger_time, configuration, transient, logger):
 
 
 
-def Define_Spectral_Model(configuration, transient, logger, correction_factor):
+def Define_Spectral_Model(configuration, transient, logger, correction_factor, energy_axis):
     """
     Return the Spectral Model.
 
@@ -177,6 +208,8 @@ def Define_Spectral_Model(configuration, transient, logger, correction_factor):
         Logger from main.
     correction_factor : float 
         Correction factor for Spectral Normalization due to time-average of the spectral fit.
+    energy_axis: `gammapy.maps.MapAxis`
+        True Energy Axis
 
     Returns
     -------
@@ -200,7 +233,7 @@ def Define_Spectral_Model(configuration, transient, logger, correction_factor):
         lambda_ = (2.0 + transient[label+'index']) / transient[label+'epeak']
         reference = transient[label+'pivot']
 
-        logger.info("Convert parameters of GBM Model into parameters of Gammapy Model")
+        logger.info("Convert parameters of Comptonized GBM Model into parameters of Gammapy Model")
 
         Spectral_Model = ExpCutoffPowerLawSpectralModel(amplitude = amplitude,
                                                 index     = index,
@@ -208,8 +241,40 @@ def Define_Spectral_Model(configuration, transient, logger, correction_factor):
                                                 reference = reference
                                                )
         logger.info(Spectral_Model)
+
+
+    elif configuration['Spectral_Model_Name'] == "band":
+
+        logger.info(f"Transient Amplitude   : {transient[label+'ampl']}")
+        logger.info(f"Transient Alpha Index : {transient[label+'alpha']}")
+        logger.info(f"Transient Beta Index  : {transient[label+'beta']}")
+        logger.info(f"Transient Peak Energy : {transient[label+'epeak']}")
+
+        ampli = transient[f"{label}ampl"] * correction_factor
+        alpha = transient[f"{label}alpha"]
+        beta  = transient[f"{label}beta"]
+        epeak = transient[f"{label}epeak"]
+
+        Band = GBM_Band_Spectral_Function(amplitude=ampli, alpha=alpha, beta=beta, Epeak=epeak)
+
+        if configuration['Energy_Interpolation'] == 'lin':
+            energies = np.linspace(energy_axis.edges[0], energy_axis.edges[-1], num=1000)
+        elif configuration['Energy_Interpolation'] == 'log':
+            energies = np.linspace(np.log10(energy_axis.edges[0].value),
+                                   np.log10(energy_axis.edges[-1].value),
+                                   num = 1000
+                                  )
+            energies = np.power(10,energies)
+            energies = energies * energy_axis.unit
+
+        values = Band.evaluate(energies)
+
+        Spectral_Model = TemplateSpectralModel(energy=energies, values=values)
+
+        logger.info(Spectral_Model)
+
     else:
-        raise NotImplementedError("Only Comptonized Spectral Model has been implemented.")
+        raise NotImplementedError("Only Comptonized and Band Spectral Model have been implemented.")
 
 
     return Spectral_Model
