@@ -1,9 +1,11 @@
 from time import time
 EXECUTION_TIME_START = time()
 
-import argparse
 from LCsim_utilities import *
+from simulator_irfs import *
+from simulator_models import *
 
+import argparse
 
 def Simulator(configuration, transient, output_directory):
     """
