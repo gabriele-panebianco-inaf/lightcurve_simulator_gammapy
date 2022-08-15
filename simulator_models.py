@@ -223,10 +223,11 @@ def Define_Spectral_Model(configuration, transient, logger, correction_factor, e
 
     if configuration['Spectral_Model_Name'] == "comp":
         
-        logger.info(f"Transient Amplitude: {transient[label+'ampl']}")
-        logger.info(f"Transient Index: {transient[label+'index']}")
-        logger.info(f"Transient Peak Energy: {transient[label+'epeak']}")
+        logger.info(f"Transient Amplitude   : {transient[label+'ampl']}")
+        logger.info(f"Transient Index       : {transient[label+'index']}")
+        logger.info(f"Transient Peak Energy : {transient[label+'epeak']}")
         logger.info(f"Transient Pivot Energy: {transient[label+'pivot']}")
+        logger.info(f"Transient {label} Flux: {transient[label+'phtflux']}")
 
         amplitude = transient[label+'ampl'] * correction_factor
         index = - transient[label+'index']
@@ -249,6 +250,7 @@ def Define_Spectral_Model(configuration, transient, logger, correction_factor, e
         logger.info(f"Transient Alpha Index : {transient[label+'alpha']}")
         logger.info(f"Transient Beta Index  : {transient[label+'beta']}")
         logger.info(f"Transient Peak Energy : {transient[label+'epeak']}")
+        logger.info(f"Transient {label} Flux: {transient[label+'phtflux']}")
 
         ampli = transient[f"{label}ampl"] * correction_factor
         alpha = transient[f"{label}alpha"]
