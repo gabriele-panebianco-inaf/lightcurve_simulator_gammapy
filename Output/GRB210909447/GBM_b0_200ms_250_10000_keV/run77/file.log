@@ -1,6 +1,0 @@
-2022-07-06 14:54:27,940. INFO: YAML File : Input/test.yml
-2022-07-06 14:54:27,940. INFO: Source Catalogue: /home/gabriele/Documents/gammapy/LCsim/archives/GBM_bursts.fits
-2022-07-06 14:54:27,940. INFO: Random Transient Name: GRB210909447
-2022-07-06 14:54:27,940. INFO: Output Directory: /home/gabriele/Documents/gammapy/LCsim/Output/GRB210909447/GBM_b0_200ms_250_10000_keV/run77/
-2022-07-06 14:54:27,941. INFO: Main body
-2022-07-06 14:54:27,941. INFO: Total Runtime =  3.069 (s). Goodbye!
