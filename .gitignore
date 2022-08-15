@@ -1,10 +1,9 @@
 # Extensions
 #*.fits
-#*.png
-#*.zip
-#*.tar.gz
-#*.ipynb
-#*.log
+*.log
+*.pdf
+*.ipynb
+*.sh
 
 # Folders
 __*
@@ -15,4 +14,4 @@ Trash
 .ipynb_checkpoints
 
 # Files
-Input/GRB*
+
