@@ -22,6 +22,9 @@ def Simulator(configuration, transient, output_directory):
     -------
         None
     """
+
+
+    logger.info(f"{30*'='}SECTION 1: SIMULATION CONFIGURATION{36*'='}\n")
     
     # Section 1: Define the general configuration for the simulation.
 
@@ -51,7 +54,9 @@ def Simulator(configuration, transient, output_directory):
 
 
 
+    logger.info(f"{100*'='}\n")
 
+    logger.info(f"{30*'='}SECTION 2: DEFINE INSTRUMENT RESPONSE{34*'='}\n")
 
     # Section 2: Define the Detector Response
     logger.info(f"Responses for instrument: {configuration['Name_Instrument']}, detector {configuration['Name_Detector']}.\n")
@@ -163,8 +168,11 @@ def Simulator(configuration, transient, output_directory):
     # Define the IRFs Dictionary
     IRFs = {'aeff' : Effective_Area, 'bkg'  : Background}
     
+    logger.info(f"{100*'='}\n")
 
 
+
+    logger.info(f"{30*'='}SECTION 3: DEFINE SPECTRAL AND TEMPORAL MODELS{25*'='}\n")
 
     # Section 3: Define the Models
     logger.info("Define the Temporal and Spectral Models.\n")
@@ -202,9 +210,10 @@ def Simulator(configuration, transient, output_directory):
     Plot_Sky_Model(model_simulations, configuration, transient, logger, axis_energy_true, trigger_time_t0,
                     correction_factor, output_directory)
 
+    logger.info(f"{100*'='}\n")
 
 
-
+    logger.info(f"{30*'='}SECTION 4: PERFORM THE SIMULATIONS{37*'='}\n")
 
     # Section 4 - Perform the simulations
     N_Light_Curves = configuration['N_Light_Curves']
@@ -284,16 +293,21 @@ def Simulator(configuration, transient, output_directory):
     logger.info(f"Loop Runtime = {np.round(time()-LOOP_START,3)} s.\n")
 
 
+    logger.info(f"{100*'='}\n")
+
+
+    logger.info(f"{30*'='}SECTION 5: EXPORT RESULTS{46*'='}\n")
+
     # Section 5 - Export Results
     Time_Centroids = observations_start - trigger_time_t0
     Time_Centroids = Time_Centroids.to("s") + observations_livetimes/2.0
 
     Write_Light_Curves(Time_Centroids, List_of_Datasets, logger, output_directory)
     
-    # 6 - Print the simulated light curves
+    # 5.1 - Print the simulated light curves
     Print_Light_Curves(Time_Centroids, List_of_Datasets, output_directory, configuration, transient)
     
-    
+    logger.info(f"{100*'='}\n")
 
 
     return None

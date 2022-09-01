@@ -82,6 +82,8 @@ def Initialize(logger, Configuration_file_path):
         Directory used to write and save output.
     """
 
+    logger.info(f"{30*'='}INITIALIZATION{56*'='}\n")
+
     # Load YAML as a dict
     logger.info("Loading YAML file...")
     with open(Configuration_file_path) as f:
@@ -142,6 +144,8 @@ def Initialize(logger, Configuration_file_path):
         logger.info(f"Configuration. Random Transient Name: {transient['name']}")
 
     logger.info(f"Configuration. Output Directory: {output_directory} \n")
+
+    logger.info(f"{100*'='}\n")
     
     return configuration, transient, output_directory
 
