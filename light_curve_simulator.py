@@ -1,3 +1,4 @@
+from distutils.command.config import config
 from time import time
 EXECUTION_TIME_START = time()
 
@@ -5,11 +6,16 @@ from simulator_configurator import *
 from simulator_irfs import *
 from simulator_models import *
 
+from simulator_initializer import Initializer
+from simulator_dataset_creator import Dataset_Creator_GBM, Dataset_Creator_COSI, Dataset_Creator_CTA
+
 import argparse
+import logging
 
 def Simulator(configuration, transient, output_directory):
     """
     Main body of the script. It executes the simulator.
+    
     Parameters
     -------
     configuration : dict
@@ -18,109 +24,80 @@ def Simulator(configuration, transient, output_directory):
         Row that contains the selected transient from the catalogue.
     output_directory : str
         Directory used to write and save output.
+        
     Returns
     -------
         None
     """
-
-
-    logger.info(f"{30*'='}SECTION 1: SIMULATION CONFIGURATION{36*'='}\n")
+    
     
     # Section 1: Define the general configuration for the simulation.
-
-    # Define Gammapy Time Axis format
-    TimeMapAxis.time_format = "iso" 
-    # Define the Reference Time as the Burst Trigger Time
-    trigger_time_t0 = Define_Reference_Time(transient, TimeMapAxis.time_format, logger)
-
-    # Define Pointing Direction (FoV Centre) as SkyCoord
-    pointing = SkyCoord(
-                transient['ra'].value,
-                transient['dec'].value,
-                unit = transient['ra'].unit,
-                frame = 'fk5',
-                equinox='J2000'
-                )
-    logger.info(f"Define Pointing Direction: {pointing}.\n")
-
-    # Define Instrument FoV Axes: Offset, FovLon, FoVLat
-    axis_offset, axis_fovlon, axis_fovlat = Define_FoV_Axes(logger)
-
-    # Define Number of Observations, Starting Times, Livetimes.
-    observations_number, observations_start , observations_livetimes = Define_Schedule(configuration,
-                                                                                       trigger_time_t0,
-                                                                                       logger
-                                                                                      )
-
-
-
-    logger.info(f"{100*'='}\n")
-
-    logger.info(f"{30*'='}SECTION 2: DEFINE INSTRUMENT RESPONSE{34*'='}\n")
-
-    # Section 2: Define the Detector Response
-    logger.info(f"Responses for instrument: {configuration['Name_Instrument']}, detector {configuration['Name_Detector']}.\n")
+    logger.info(f"{30*'='}SECTION 1: SIMULATION CONFIGURATION{36*'='}\n")
     
-    # GBM and COSI have different types of response file
-    if configuration['Name_Instrument']=="COSI":
+    # Define the object that holds the general configuration.
+    if configuration['Name_Instrument']=="GBM":
+        configurator = Dataset_Creator_GBM(logger)
+        File_rmf = configuration['Input_rsp']
+        Hdu_edisp= "SPECRESP MATRIX"
+        File_arf = None
+        Hdu_aeff = None
+        
+    elif configuration['Name_Instrument']=="COSI":
+        configurator = Dataset_Creator_COSI(logger)
         File_rmf = configuration['Input_rmf']
         Hdu_edisp= "MATRIX"
         File_arf = configuration['Input_arf']
         Hdu_aeff = "SPECRESP"
-    elif configuration['Name_Instrument']=="GBM":
-        File_rmf = configuration['Input_rsp']
-        Hdu_edisp= "SPECRESP MATRIX"
+        
+    elif configuration['Name_Instrument']=="CTA":
+        configurator = Dataset_Creator_CTA(logger)
+        raise NotImplementedError(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
     else:
         raise NotImplementedError(f"Functions for instrument {configuration['Name_Instrument']} not implemented. Accepted: GBM, COSI.")
 
+    
+    # Define the Reference Time as the Burst Trigger Time
+    TimeMapAxis.time_format = "iso"
+    configurator.set_reference_time(transient, TimeMapAxis.time_format)
+    
+    # Define Pointing Direction (FoV Centre) as the Transient Coordinates and the FoV Axes
+    configurator.set_pointing(transient) # default: frame='fk5', equinox='J2000'
+ 
+    # Define Number of Observations, Starting Times, Livetimes.
+    configurator.define_schedule(configuration)
 
+    observations_number    = configurator.observations_number
+    observations_start     = configurator.observations_start
+    observations_livetimes = configurator.observations_livetimes
+
+    logger.info(f"{100*'='}\n")
+
+
+    # Section 2: Define the Detector Response
+    logger.info(f"{30*'='}SECTION 2: DEFINE INSTRUMENT RESPONSE{34*'='}\n")
+    logger.info(f"Responses for instrument: {configuration['Name_Instrument']}, detector {configuration['Name_Detector']}.\n")
+    
     # Read and define the Reconstructed Energy Axis from EBOUNDS HDU of RMF/RSP
-    axis_energy_reco = Define_Energy_Axis(File_rmf,
-                                          "EBOUNDS",
-                                          configuration,
-                                          logger,
-                                          energy_is_true = False
-                                         )
+    configurator.set_axis_energy_reco(File_rmf, "EBOUNDS", configuration)
+    
     # Read and define the True Energy Axis from MATRIX/SPECRESP MATRIX HDU of RMF/RSP
-    axis_energy_true = Define_Energy_Axis(File_rmf,
-                                          Hdu_edisp,
-                                          configuration,
-                                          logger,
-                                          energy_is_true = True
-                                         )
-
+    configurator.set_axis_energy_true(File_rmf, Hdu_edisp, configuration)
+    
     # Define the Source Geometry
-    geom = Define_Geometry(pointing, axis_energy_reco, logger)  
-
+    configurator.set_geometry() # radius=1.0
 
     # Read the Detector Response Matrix into a 2D Astropy Quantity (vs Energy True, Reco)
-    Detector_Response_Matrix = Read_Response_Matrix_from_RSP(File_rmf,
-                                                                Hdu_edisp,
-                                                                "EBOUNDS",
-                                                                configuration,
-                                                                logger
-                                                                )
+    configurator.read_response_matrix_from_RSP(File_rmf, Hdu_edisp, configuration)
 
     # Read the Effective Area into a 1D Astropy Quantity (vs Energy True)
-    if configuration['Name_Instrument']=="COSI":
-        aeff_array = Read_Effective_Area_from_ARF(File_arf,
-                                                    Hdu_aeff,
-                                                    configuration,
-                                                    logger
-                                                    )
-    elif configuration['Name_Instrument']=="GBM":
-        logger.info("Compute Effective Area.")
-        aeff_array = np.sum(Detector_Response_Matrix, axis=1)
+    configurator.compute_effective_area_array(File_arf, Hdu_aeff, configuration)
 
     # Define the Effective Area as a Gammapy object
-    Effective_Area = Compute_Effective_Area_2D(aeff_array,
-                                               axis_offset,
-                                               axis_energy_true,
-                                               logger,
-                                               configuration,
-                                               transient,
-                                               output_directory
-                                              )
+    Effective_Area = configurator.compute_effective_area_2D(configurator.aeff_array,
+                                                            configuration,
+                                                            transient,
+                                                            output_directory
+                                                            )
 
     
     # Define the Energy Dispersion Matrix as a Gammapy object (with an Exposure Map)
@@ -313,6 +290,30 @@ def Simulator(configuration, transient, output_directory):
     return None
 
 
+def Welcome(logger):
+    """
+    Welcome function. This is used to print info about the code on execution.
+    
+    Parameters
+    ----------
+    logger : `logging.Logger`
+        Logger from main.
+    """
+    logger.info('Welcome! A proper Welcome must be implemented.\n')
+    return None
+
+def Goodbye(logger):
+    """
+    Goodbye function. Mostly counts time.
+
+    Parameters
+    ----------
+    logger : `logging.Logger`
+        Logger from main.
+    """
+    logger.info(f"Total Runtime =  {np.round(time()-EXECUTION_TIME_START,3)} s. Goodbye!\n")
+    return 0
+
 
 if __name__ == '__main__':
 
@@ -331,12 +332,14 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--configurationfile", help="name of the configuration YAML file")
     args = parser.parse_args()
 
-    # 3 - Load Configuration YAML file and Choose a Transient
-    configuration, transient, output_directory = Initialize(logger, args.configurationfile)
+    # 3 - Load Configuration YAML file, Choose a Transient and an output directory.
+    initializer = Initializer()
+    initializer.set_logger(logger)
+    initializer.run_initialization(args.configurationfile)
     
     # 4 - Execute the simulator (Main function)
-    Simulator(configuration, transient, output_directory)
+    Simulator(initializer.configuration, initializer.transient, initializer.output_directory)
 
     # 5 - Goodbye
-    Goodbye(logger, EXECUTION_TIME_START)
+    Goodbye(logger)
 

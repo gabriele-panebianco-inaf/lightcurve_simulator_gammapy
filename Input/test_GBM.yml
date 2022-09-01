@@ -11,7 +11,7 @@ Observation_Livetime  : 0.200 # Livetime of each observation
 Observation_Deadtime  : 0.000 # Deadtime of each observation
 
 Output_Directory : /home/gabriele/Documents/gammapy/LCsim/Output/
-Output_Run_ID    : run77
+Output_Run_ID    : test_object
 
 
 
