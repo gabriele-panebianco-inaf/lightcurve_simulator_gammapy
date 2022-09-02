@@ -13,6 +13,7 @@ from astropy.io import fits
 from astropy.table import QTable
 from astropy.time import Time
 
+from gammapy.datasets import SpectrumDataset
 from gammapy.irf import EffectiveAreaTable2D, load_cta_irfs
 from gammapy.maps import MapAxis, RegionGeom
 
@@ -20,7 +21,16 @@ from gammapy.maps import MapAxis, RegionGeom
 FIGURE_FORMAT = ".pdf"
 
 class Dataset_Creator():
-    """Abstract class to create the DL4 that are going to be filled."""
+    """
+    Abstract class to create the DL4 that are going to be filled.
+    
+    Parameters
+    ----------
+    log : `logging.Logger`
+            Logger.
+    spectrum_dataset : `gammapy.datasets.SpectrumDataset`
+            Spectrum Dataset with the reduced DL4 IRFs.
+    """
     def __init__(self, log):
         """
         Constructor.
@@ -32,6 +42,40 @@ class Dataset_Creator():
         """
         self.log = log
         return None
+    
+    def set_spectrum_dataset(self,
+                             geometry,
+                             energy_axis_true,
+                             reference_time,
+                             energy_dispersion_map,
+                             exposure_map,
+                             background_map
+                             ):
+        """
+        Setter for the spectrum_dataset.
+        
+        Parameters
+        ----------
+        geometry : `gammapy.maps.region.geom.RegionGeom`
+            Circular Source Geometry.
+        energy_axis_true : `gammapy.maps.MapAxis`
+            True and Reconstructed Energy Axis.
+        reference_time : `astropy.time.Time`
+            Reference Time. It is defined as the Trigger time of the Transient.
+        energy_dispersion_map : `gammapy.irf.EDispKernelMap`
+            Map of Energy Dispersion created from kernel.
+        exposure_map :
+        background_map :
+        """
+        self.spectrum_dataset = SpectrumDataset.create(geometry,
+                                                       energy_axis_true = energy_axis_true,
+                                                       reference_time = reference_time,
+                                                       name = "Empty_dataset",
+                                                       edisp = energy_dispersion_map,
+                                                       exposure = exposure_map,
+                                                       background = background_map
+                                                       )
+        return self
 
 
 class Dataset_Creator_From_XSPEC(Dataset_Creator):
