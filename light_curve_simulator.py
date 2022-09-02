@@ -1,4 +1,3 @@
-from distutils.command.config import config
 from time import time
 EXECUTION_TIME_START = time()
 
@@ -7,7 +6,8 @@ from simulator_irfs import *
 from simulator_models import *
 
 from simulator_initializer import Initializer
-from simulator_dataset_creator import Dataset_Creator_GBM, Dataset_Creator_COSI, Dataset_Creator_CTA
+from simulator_dataset_creator_XSPEC import Dataset_Creator_GBM, Dataset_Creator_COSI
+from simulator_dataset_creator import Dataset_Creator_CTA
 
 import argparse
 import logging
