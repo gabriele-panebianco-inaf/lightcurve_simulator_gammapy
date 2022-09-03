@@ -59,9 +59,6 @@ def Simulator(configuration, transient, output_directory):
     # Define the Reference Time as the Burst Trigger Time
     TimeMapAxis.time_format = "iso"
     configurator.set_reference_time(transient, TimeMapAxis.time_format)
-    
-    # Define Pointing Direction (FoV Centre) as the Transient Coordinates and the FoV Axes
-    configurator.set_pointing(transient) # default: frame='fk5', equinox='J2000'
  
     # Define Number of Observations, Starting Times, Livetimes.
     configurator.define_schedule(configuration)
@@ -83,35 +80,29 @@ def Simulator(configuration, transient, output_directory):
     # Read and define the True Energy Axis from MATRIX/SPECRESP MATRIX HDU of RMF/RSP
     configurator.set_axis_energy_true(File_rmf, Hdu_edisp, configuration)
     
-    # Define the Source Geometry
+    # Define the Source Geometry around the Transient Coordinates
     configurator.set_geometry() # radius=1.0
+
+
 
     # Read the Detector Response Matrix into a 2D Astropy Quantity (vs Energy True, Reco)
     configurator.read_response_matrix_from_RSP(File_rmf, Hdu_edisp, configuration)
 
     # Read the Effective Area into a 1D Astropy Quantity (vs Energy True)
-    configurator.compute_effective_area_array(File_arf, Hdu_aeff, configuration)
-
-    # Define the Effective Area as a Gammapy object
-    Effective_Area = configurator.compute_effective_area_2D(configurator.aeff_array,
-                                                            configuration,
-                                                            transient,
-                                                            output_directory
-                                                            )
+    configurator.compute_effective_area_array(File_arf, Hdu_aeff, configuration, transient, output_directory)
+    
+    # Compute the Exposure Map
+    map_exposure, map_exposure_edisp = configurator.compute_exposure_map(configurator.aeff_array,
+                                                                         observations_livetimes
+                                                                         )
 
     
     # Define the Energy Dispersion Matrix as a Gammapy object (with an Exposure Map)
-    Energy_Dispersion_Matrix_Map = Compute_Energy_Dispersion_Matrix(Detector_Response_Matrix,
-                                                                    axis_energy_true,
-                                                                    axis_energy_reco,
-                                                                    Effective_Area,
-                                                                    observations_livetimes,
-                                                                    geom,
-                                                                    logger,
-                                                                    configuration,
-                                                                    transient,
-                                                                    output_directory)
-
+    energy_dispersion_matrix_map = configurator.compute_energy_dispersion_map(map_exposure_edisp,
+                                                                              configuration,
+                                                                              transient,
+                                                                              output_directory
+                                                                              )
 
 
     # Load the Background Spectrum into a 1D Astropy Quantity (vs Energy Reco)

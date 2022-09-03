@@ -13,8 +13,10 @@ from astropy.io import fits
 from astropy.table import QTable
 from astropy.time import Time
 
-from gammapy.irf import EffectiveAreaTable2D
-from gammapy.maps import MapAxis, RegionGeom
+from gammapy.irf import EDispKernel, EDispKernelMap
+from gammapy.maps import MapAxis, RegionGeom, RegionNDMap
+
+from matplotlib.colors import LogNorm, PowerNorm
 
 from simulator_dataset_creator import Dataset_Creator
 
@@ -76,132 +78,8 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
         return None
     
     
-    def _set_FoV_axes(self):
-        """
-        Set the FoV Axes: Offset, Lon, Lat.
-        """
-        
-        self.log.info(f"Set Instrument FoV Axes.")
-
-        # Assumption: The FoV Center is (0,0), FoV_Lon and FoV_Lat are symmetric wrt to 0.0
-        fov_maximum_offset = 5.0 * u.deg
-        fov_n_bin = 5
+ 
     
-        # Create Instrument Offset axis
-        axis_offset = MapAxis.from_bounds(0.0,
-                                          fov_maximum_offset.value,
-                                          unit = fov_maximum_offset.unit,
-                                          nbin = fov_n_bin,
-                                          name = "offset"
-                                          )
-        # Create Instrument FoV_lon axis
-        axis_fovlon = MapAxis.from_bounds(-fov_maximum_offset.value/2.0,
-                                          +fov_maximum_offset.value/2.0,
-                                          unit = fov_maximum_offset.unit,
-                                          nbin = fov_n_bin,
-                                          name = "fov_lon"
-                                          )
-        # Create Instrument FoV_lat axis
-        axis_fovlat = MapAxis.from_bounds(-fov_maximum_offset.value/2.0,
-                                          +fov_maximum_offset.value/2.0,
-                                          unit = fov_maximum_offset.unit,
-                                          nbin = fov_n_bin,
-                                          name = "fov_lat"
-                                          )
-        #self.log.info(axis_offset)
-        #self.log.info(axis_fovlon)
-        #self.log.info(axis_fovlat)
-        
-        # Set attributes
-        self._axis_offset = axis_offset
-        self._axis_fovlon = axis_fovlon
-        self._axis_fovlat = axis_fovlat
-        return None
-
-
-    def set_pointing(self, transient, frame='fk5', equinox='J2000'):
-        """
-        Set the pointing direction (FoV centre).
-        
-        Parameters
-        ----------
-        transient: `astropy.table.row.Row`
-            Row of the chosen transient.
-        frame : str
-            Coordinate frame.
-        equinox : str
-            Coordinate equinox
-        """
-        self.pointing = SkyCoord(transient['ra'].value,
-                                 transient['dec'].value,
-                                 unit = transient['ra'].unit,
-                                 frame = frame,
-                                 equinox=equinox
-                                 )              
-        self.log.info(f"Define Pointing Direction: {self.pointing}.\n")
-        
-        self._set_FoV_axes()
-        return None
-    
-    
-    
-
-    def define_schedule(self, configuration):
-        """
-        Return the Schedule for the simulation:
-        Number of observations, Start time and duration of each observation.
-
-        Parameters
-        ----------
-        configuration : dict
-            Dictionary with the parameters from the YAML file. 
-        """
-        self.log.info("Define the Observations' schedule.")
-
-        Time_Unit = u.Unit(configuration['Time_Unit'])
-        Time_Start= configuration['Observation_Time_Start'] * Time_Unit
-        Time_Stop = configuration['Observation_Time_Stop' ] * Time_Unit
-        Livetime  = configuration['Observation_Livetime'  ] * Time_Unit
-        Deadtime  = configuration['Observation_Deadtime'  ] * Time_Unit
-
-        # Estimate Number of observations
-        observations_number = (Time_Stop - Time_Start) / Livetime
-        observations_number = int(np.floor(observations_number.value))
-
-        # Define starting time of each observation linearly spaced during the night (wrt trigger time)
-        observations_start = np.linspace(Time_Start.value,
-                                         Time_Stop.value,
-                                         num = observations_number
-                                        )
-        observations_start = observations_start.tolist() * Time_Unit
-
-        # Define the duration of each observation as the difference between
-        # two following starting times minus the rest time between them.
-        # These are still quantities relative to the trigger time
-        observations_livetimes = observations_start[1:] - observations_start[:-1] - Deadtime
-
-        # Remove last edge to have the same array dimesion for starting times and livetimes.
-        observations_start = observations_start[:-1]
-
-        # Turn them from astropy.units.quantity.Quantity to astropy.time.core.Time:
-        # From relative to absolute times.
-        observations_start = Time(self.reference_time + observations_start)
-
-        # Adjust the number of observations after resizing observations_start
-        observations_number = observations_start.size
-
-        # Log
-        self.log.info(f"Number of Observations: {observations_number}.")
-        self.log.info(f"Observation start wrt Trigger Time: {Time_Start}. Absolute value: {observations_start[0]}.")
-        self.log.info(f"Observation stop  wrt Trigger Time: {Time_Stop}.")
-        self.log.info(f"Observation livetime: {np.round(observations_livetimes[0],4)}.\n")
-
-        # Set attributes
-        self.observations_number    = observations_number
-        self.observations_start     = observations_start
-        self.observations_livetimes = observations_livetimes
-
-        return None
     
     
     def _define_energy_axis(self,
@@ -344,6 +222,73 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
     
     
     
+    
+        # def _set_FoV_axes(self):
+    #     """
+    #     Set the FoV Axes: Offset, Lon, Lat.
+    #     """
+        
+    #     self.log.info(f"Set Instrument FoV Axes.")
+
+    #     # Assumption: The FoV Center is (0,0), FoV_Lon and FoV_Lat are symmetric wrt to 0.0
+    #     fov_maximum_offset = 5.0 * u.deg
+    #     fov_n_bin = 5
+    
+    #     # Create Instrument Offset axis
+    #     axis_offset = MapAxis.from_bounds(0.0,
+    #                                       fov_maximum_offset.value,
+    #                                       unit = fov_maximum_offset.unit,
+    #                                       nbin = fov_n_bin,
+    #                                       name = "offset"
+    #                                       )
+    #     # Create Instrument FoV_lon axis
+    #     axis_fovlon = MapAxis.from_bounds(-fov_maximum_offset.value/2.0,
+    #                                       +fov_maximum_offset.value/2.0,
+    #                                       unit = fov_maximum_offset.unit,
+    #                                       nbin = fov_n_bin,
+    #                                       name = "fov_lon"
+    #                                       )
+    #     # Create Instrument FoV_lat axis
+    #     axis_fovlat = MapAxis.from_bounds(-fov_maximum_offset.value/2.0,
+    #                                       +fov_maximum_offset.value/2.0,
+    #                                       unit = fov_maximum_offset.unit,
+    #                                       nbin = fov_n_bin,
+    #                                       name = "fov_lat"
+    #                                       )
+    #     #self.log.info(axis_offset)
+    #     #self.log.info(axis_fovlon)
+    #     #self.log.info(axis_fovlat)
+        
+    #     # Set attributes
+    #     self._axis_offset = axis_offset
+    #     self._axis_fovlon = axis_fovlon
+    #     self._axis_fovlat = axis_fovlat
+    #     return None
+
+
+    def _define_pointing(self, transient, frame='fk5', equinox='J2000'):
+        """
+        Set the pointing direction (FoV centre).
+        
+        Parameters
+        ----------
+        transient: `astropy.table.row.Row`
+            Row of the chosen transient.
+        frame : str
+            Coordinate frame.
+        equinox : str
+            Coordinate equinox
+        """
+        pointing = SkyCoord(transient['ra'].value,
+                            transient['dec'].value,
+                            unit = transient['ra'].unit,
+                            frame = frame,
+                            equinox = equinox
+                            )              
+        self.log.info(f"Define Pointing Direction: {pointing}.\n")
+        
+        return pointing
+    
     def set_geometry(self, radius=1.0):
         """
         Define the Source Sky Geometry: a circular region in the sky where we place the source
@@ -355,10 +300,14 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
             radius of the Circular Geometry in degree. Must be smaller than the FoV.
         """
         self.log.info("Define Source Geometry.")
+        
+        # Define Pointing Direction
+        pointing = self._define_pointing()  # default: frame='fk5', equinox='J2000'
+        
         geometry_radius = radius * u.deg
-        source_geometry_str = self.pointing.frame.name + ';circle('
-        source_geometry_str+= self.pointing.to_string().split()[0] + ', '
-        source_geometry_str+= self.pointing.to_string().split()[1] + ', '
+        source_geometry_str = pointing.frame.name + ';circle('
+        source_geometry_str+= pointing.to_string().split()[0] + ', '
+        source_geometry_str+= pointing.to_string().split()[1] + ', '
         source_geometry_str+= f"{geometry_radius.value})"
 
         # Set and Log
@@ -369,11 +318,7 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
     
     
     
-    def read_response_matrix_from_RSP(self,
-                                      name_file_fits,
-                                      name_hdu,
-                                      configuration,
-                                      ):
+    def read_response_matrix_from_RSP(self, name_file_fits, name_hdu, configuration):
         """
         Return the Detector Response Matrix as a function of true and reconstructed energy with their unit.
 
@@ -479,34 +424,38 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
     
     
     
-    def compute_effective_area_2D(self, aeff_array ):
-        """
-        Returns the DL3 Effective Area, assumed to be constant with offset.
+    # def compute_effective_area_2D(self, aeff_array):
+    #     """
+    #     Returns the DL3 Effective Area, assumed to be constant with offset.
 
-        Parameters
-        ----------
-        aeff_array : `astropy.units.Quantity`
-            Astropy array of Effective Area values as a function of energy.
+    #     Parameters
+    #     ----------
+    #     aeff_array : `astropy.units.Quantity`
+    #         Astropy array of Effective Area values as a function of energy.
         
-        Returns
-        -------
-        aeff : `gammapy.irf.EffectiveAreaTable2D`
-        """
+    #     Returns
+    #     -------
+    #     aeff : `gammapy.irf.EffectiveAreaTable2D`
+    #     """
 
-        self.log.info("Assume Effective Area is constant in the Instrument FoV")
+    #     self.log.info("Assume Effective Area is constant in the Instrument FoV")
 
-        # Replicate the Effective Area array for each bin of the Offset Axis
-        aeff_matrix = np.transpose(aeff_array.value * np.ones((self._axis_offset.nbin, self.axis_energy_true.nbin)))
+    #     # Replicate the Effective Area array for each bin of the Offset Axis
+    #     aeff_matrix = np.transpose(aeff_array.value * np.ones((self._axis_offset.nbin, self.axis_energy_true.nbin)))
 
-        aeff = EffectiveAreaTable2D(axes = [self.axis_energy_true, self._axis_offset],
-                                    data = aeff_matrix,
-                                    unit = aeff_array.unit
-                                   )
+    #     aeff = EffectiveAreaTable2D(axes = [self.axis_energy_true, self._axis_offset],
+    #                                 data = aeff_matrix,
+    #                                 unit = aeff_array.unit
+    #                                )
 
-        self.log.info(aeff)
+    #     self.log.info(aeff)
 
-        return aeff
+    #     return aeff
     
+    
+    def compute_effective_area_array(self):
+        raise NotImplementedError("Call funciton from a derived class.")
+        pass    
     
     def _plot_aeff_array(self, aeff_array, configuration, transient, output_directory):
         """
@@ -540,6 +489,158 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
         fig.savefig(figure_name, facecolor = 'white')
         
         return None
+    
+    def compute_exposure_map(self, aeff_array, livetimes):
+        """
+        Returns the DL4 Exposure Map = Effective Area * Livetime.
+        
+        Parameters
+        ----------
+        aeff_array : `astropy.units.Quantity`
+            Astropy array of Effective Area values as a function of energy.
+        livetimes : `astropy.units.Quantity`
+            Astropy Array of the livetimes, needed to set the Exposure Map.
+            
+        Returns
+        -------
+        map_exposure : `gammapy.maps.RegionNDMap`
+            Map of the Exposure. Axes: 'lon', 'lat', 'energy_true'. Shape: 1x1xlen(aeff_array).
+        map_exposure_edisp : `gammapy.maps.RegionNDMap`
+            Map of the Exposure. Axes: 'lon', 'lat', 'energy', 'energy_true'. Shape: 1x1x1xlen(aeff_array).
+        """
+        self.log.info("Compute exposure map.")
+        
+        expo_array = aeff_array * livetimes[0]
+        
+        geom_exposure = self.geometry.drop('energy').to_cube([self.axis_energy_true])
+        
+        map_exposure = RegionNDMap.from_geom(geom = geom_exposure,
+                                             data = np.reshape(expo_array.value, geom_exposure.data_shape),
+                                             unit = expo_array.unit
+                                             )
+        
+        geom_exposure_edisp = self.geometry.squash('energy').to_cube([self.axis_energy_true])
+        
+        map_exposure_edisp = RegionNDMap.from_geom(geom = geom_exposure_edisp,
+                                                   data = np.reshape(expo_array.value, geom_exposure_edisp.data_shape),
+                                                   unit = expo_array.unit
+                                                   )
+        
+        
+        return map_exposure, map_exposure_edisp
+    
+    
+
+    def compute_energy_dispersion_map(self,
+                                      map_exposure_edisp,
+                                      configuration,
+                                      transient,
+                                      output_directory
+                                      ):
+        """
+        Returns the Energy Dispersion Kernel Map.
+        Set the Exposure Map of the Energy Dispersion Matrix.
+
+        Parameters
+        ----------
+        map_exposure_edisp : `gammapy.maps.RegionNDMap`
+            Exposure Map with 4 dimensions: 'lon', 'lat', 'energy', 'energy_true'. Shape 1x1x1xlen(Effective Area).
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        transient : `astropy.table.row.Row`
+            Row that contains the selected transient from the catalogue.
+        output_directory : str
+            Output directory where to save a figure of the Effective Area.
+
+        Returns
+        -------
+        edisp : `gammapy.irf.EDispKernelMap `
+            Energy Dispersion Matrix as a DL4 reduced IRF with an Exposure Map.
+        """
+
+        self.log.info("Compute Energy Dispersion Matrix")
+
+        edisp = EDispKernel(axes = [self.axis_energy_true, self.axis_energy_reco],
+                            data = self.detector_response_matrix.value
+                            )
+        edisp = EDispKernelMap.from_edisp_kernel(edisp, geom = self.geometry)
+
+        # Normalize GBM Data:
+        if configuration['Name_Instrument'] == 'GBM':
+            DRM = np.zeros(np.shape(edisp.edisp_map.data.T[0][0].T))
+            for i, r in enumerate(edisp.edisp_map.data.T[0][0].T):
+                norm_row = np.sum(r)
+                if norm_row != 0.0:
+                    DRM[i] = r / norm_row
+
+            DRM = np.reshape(DRM, np.shape(edisp.edisp_map.data))
+            edisp.edisp_map.data = DRM
+            self.log.warning(f"Normalization to 1 applied: assuming no lost photons.")
+
+        # Set exposure map
+        edisp.exposure_map = map_exposure_edisp
+        
+        # Plot
+        self._plot_energy_dispersion(edisp, configuration, transient, output_directory)
+
+        return edisp
+    
+    def _plot_energy_dispersion(self, edisp, configuration, transient, output_directory):
+        """
+        Plot and save the Energy Dispersion Matrix.
+        
+        Parameters
+        ----------
+        edisp : `gammapy.irf.EDispKernelMap `
+            Energy Dispersion Matrix as a DL4.
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        transient : `astropy.table.row.Row`
+            Row that contains the selected transient from the catalogue.
+        output_directory : str
+            Output directory where to save a figure of the Effective Area.
+        """
+        # Prepare Grid
+        X, Y = np.meshgrid(self.axis_energy_true.center.value, self.axis_energy_reco.center.value)
+
+        # Copy Data with Masking
+        Z = np.ma.masked_where(edisp.edisp_map.data.T[0][0] <= 0, edisp.edisp_map.data.T[0][0])
+
+        # Plot
+        fig, ax = plt.subplots(1, figsize=(9,5))
+
+        # Define Levels
+        levs = np.linspace(np.floor(np.power(Z.min(),0.3)),
+                           np.ceil( np.power(Z.max(),0.3)),
+                           num = 50
+                          )
+        levs = np.power(levs, 1.0/0.3)
+
+        # Plot Data
+        cs = ax.contourf(X, Y, Z, levs, norm = PowerNorm(gamma=0.3), cmap = 'plasma')
+        ax.contour(X, Y, Z, levs, norm = PowerNorm(gamma=0.3), colors='white', alpha=0.05)
+        cbar = fig.colorbar(cs)
+
+        # Labels
+        ax.set_facecolor('k')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        cbar.set_label('Redistribution Probability', fontsize = 'large')
+        ax.set_xlabel(f"True Energy [{self.axis_energy_true.unit}]", fontsize = 'large')
+        ax.set_ylabel(f"Energy [{self.axis_energy_reco.unit}]", fontsize = 'large')
+
+        title = f"Energy Dispersion Matrix {configuration['Name_Instrument']}"
+        title+= f" {configuration['Name_Detector']}, {transient['name']}."
+        ax.set_title(title, fontsize = 'large')
+
+        # Save figure
+        figure_name = output_directory+"IRF_energy_dispersion_matrix"+FIGURE_FORMAT
+        self.log.info(f"Saving Energy Dispersion Matrix plot : {figure_name}\n")
+        fig.savefig(figure_name, facecolor = 'white')
+
+        return None
+
+
 
 
 
@@ -580,7 +681,7 @@ class Dataset_Creator_GBM(Dataset_Creator_From_XSPEC):
         self.log.info(f"Total effective area: {np.sum(self.aeff_array)}.")
         
         # Plot and Save
-        self._plot_aeff_array(self, self.aeff_array, configuration, transient, output_directory)
+        self._plot_aeff_array(self.aeff_array, configuration, transient, output_directory)
         return None
     
     
