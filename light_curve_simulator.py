@@ -81,9 +81,7 @@ def Simulator(configuration, transient, output_directory):
     configurator.set_axis_energy_true(File_rmf, Hdu_edisp, configuration)
     
     # Define the Source Geometry around the Transient Coordinates
-    configurator.set_geometry() # radius=1.0
-
-
+    configurator.set_geometry(transient) # radius=1.0
 
     # Read the Detector Response Matrix into a 2D Astropy Quantity (vs Energy True, Reco)
     configurator.read_response_matrix_from_RSP(File_rmf, Hdu_edisp, configuration)
@@ -106,10 +104,11 @@ def Simulator(configuration, transient, output_directory):
 
 
     # Load the Background Spectrum into a 1D Astropy Quantity (vs Energy Reco)
-    bak_model = Read_Background_Spectrum(configuration,
-                                       geom,
-                                       logger
-                                      )
+    bak_model = configurator.read_background_spectrum(configuration)
+    
+    # Compute the Background as a Map for the SpectrumDataset
+    background_map = configurator.compute_background_map(bak_model, configuration, transient, output_directory)
+    
     # Define the Background as a Gammapy Object
     if configuration['Name_Instrument']=="COSI":
         axis_energy_reco_bkg = axis_energy_reco

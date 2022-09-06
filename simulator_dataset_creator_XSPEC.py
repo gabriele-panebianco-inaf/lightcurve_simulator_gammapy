@@ -289,20 +289,22 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
         
         return pointing
     
-    def set_geometry(self, radius=1.0):
+    def set_geometry(self, transient, radius=1.0):
         """
         Define the Source Sky Geometry: a circular region in the sky where we place the source
         and we assume that we can receive photons with reconstructed energy in the given axis.
 
         Parameters
         ----------
+        transient: `astropy.table.row.Row`
+            Row of the chosen transient.
         radius: float
-            radius of the Circular Geometry in degree. Must be smaller than the FoV.
+            Radius of the Circular Geometry in degree.
         """
         self.log.info("Define Source Geometry.")
         
         # Define Pointing Direction
-        pointing = self._define_pointing()  # default: frame='fk5', equinox='J2000'
+        pointing = self._define_pointing(transient)  # default: frame='fk5', equinox='J2000'
         
         geometry_radius = radius * u.deg
         source_geometry_str = pointing.frame.name + ';circle('
@@ -527,63 +529,11 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
                                                    )
         
         
-        return map_exposure, map_exposure_edisp
+        return map_exposure, map_exposure_edisp   
     
-    
-
-    def compute_energy_dispersion_map(self,
-                                      map_exposure_edisp,
-                                      configuration,
-                                      transient,
-                                      output_directory
-                                      ):
-        """
-        Returns the Energy Dispersion Kernel Map.
-        Set the Exposure Map of the Energy Dispersion Matrix.
-
-        Parameters
-        ----------
-        map_exposure_edisp : `gammapy.maps.RegionNDMap`
-            Exposure Map with 4 dimensions: 'lon', 'lat', 'energy', 'energy_true'. Shape 1x1x1xlen(Effective Area).
-        configuration : dict
-            Dictionary with the parameters from the YAML file.
-        transient : `astropy.table.row.Row`
-            Row that contains the selected transient from the catalogue.
-        output_directory : str
-            Output directory where to save a figure of the Effective Area.
-
-        Returns
-        -------
-        edisp : `gammapy.irf.EDispKernelMap `
-            Energy Dispersion Matrix as a DL4 reduced IRF with an Exposure Map.
-        """
-
-        self.log.info("Compute Energy Dispersion Matrix")
-
-        edisp = EDispKernel(axes = [self.axis_energy_true, self.axis_energy_reco],
-                            data = self.detector_response_matrix.value
-                            )
-        edisp = EDispKernelMap.from_edisp_kernel(edisp, geom = self.geometry)
-
-        # Normalize GBM Data:
-        if configuration['Name_Instrument'] == 'GBM':
-            DRM = np.zeros(np.shape(edisp.edisp_map.data.T[0][0].T))
-            for i, r in enumerate(edisp.edisp_map.data.T[0][0].T):
-                norm_row = np.sum(r)
-                if norm_row != 0.0:
-                    DRM[i] = r / norm_row
-
-            DRM = np.reshape(DRM, np.shape(edisp.edisp_map.data))
-            edisp.edisp_map.data = DRM
-            self.log.warning(f"Normalization to 1 applied: assuming no lost photons.")
-
-        # Set exposure map
-        edisp.exposure_map = map_exposure_edisp
-        
-        # Plot
-        self._plot_energy_dispersion(edisp, configuration, transient, output_directory)
-
-        return edisp
+    def compute_energy_dispersion_map(self):
+        raise NotImplementedError("Call funciton from a derived class.")
+        pass
     
     def _plot_energy_dispersion(self, edisp, configuration, transient, output_directory):
         """
@@ -639,6 +589,147 @@ class Dataset_Creator_From_XSPEC(Dataset_Creator):
         fig.savefig(figure_name, facecolor = 'white')
 
         return None
+    
+    
+    def read_background_spectrum(self, configuration, hdu_ebounds="EBOUNDS", hdu_spectrum="SPECTRUM"):
+        """
+        Return the background Spectral Model.
+
+        Parameters
+        ----------
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        hdu_ebounds : str
+            Name of the HDU that contains the Reconstructed Energy Axis.
+        hdu_spectrum : str
+            Name of the HDU that contains the Spectral Model.
+
+        Returns
+        -------
+        `astropy.units.Quantity`
+        """
+
+        self.log.info(f"Read the Background Spectral Model from BAK file: {configuration['Input_bak']}")
+
+        # Define Background Tables
+        with fits.open(configuration['Input_bak']) as hdulist:
+            table_spectrum = QTable.read(hdulist[hdu_spectrum])
+            try:
+                table_ebounds = QTable.read(hdulist[hdu_ebounds])
+            except:
+                self.log.warning(f"Energy Axis not found in BAK. Try to look in {configuration['Input_rmf']}")
+                with fits.open(configuration['Input_rmf']) as hdulist_rmf:
+                    table_ebounds = QTable.read(hdulist_rmf[hdu_ebounds])
+
+            if 'RATE' in table_spectrum.colnames:
+                if table_spectrum['RATE'].unit is None:
+                    self.log.warning(f"RATE unit not found. Using 1/{configuration['Time_Unit']}")
+                    table_spectrum['RATE'] = table_spectrum['RATE'] / u.Unit(configuration['Time_Unit'])
+            elif 'COUNTS' in table_spectrum.colnames:
+                self.log.warning(f"Column RATE not found. Using COUNTS / (EXPOSURE [s])")
+                Integration_time = hdulist[hdu_spectrum].header['EXPOSURE']*u.s
+                self.log.info(f"EXPOSURE (s) = {Integration_time.value}")
+            else:
+                self.log.error(f"We could not find column RATE nor COUNTS")
+                exit()
+
+            # Check Units
+            if table_ebounds['E_MIN'].unit is None:
+                self.log.warning(f"Energy unit not found. Using {configuration['Energy_Unit']}")
+                table_ebounds['E_MIN'] = table_ebounds['E_MIN'] * u.Unit(configuration['Energy_Unit'])
+                table_ebounds['E_MAX'] = table_ebounds['E_MAX'] * u.Unit(configuration['Energy_Unit'])
+
+        # Define a new Table with the Columns we need.
+        table = QTable()
+
+        table['E_MIN'] = table_ebounds['E_MIN']
+        table['E_MAX'] = table_ebounds['E_MAX']
+
+        if 'RATE' in table_spectrum.colnames:
+            table['RATE'] = table_spectrum['RATE']
+        elif 'COUNTS' in table_spectrum.colnames:
+            table['RATE'] = table_spectrum['COUNTS'].value / Integration_time
+
+        # Define the column of the Background Spectral Model    
+        table['BKG_MOD'] = table['RATE'] / (table['E_MAX']-table['E_MIN'])
+
+        energy_edges = np.append(table['E_MIN'], table['E_MAX'][-1])
+        energy_range = configuration['Energy_Range_Reco'] * u.Unit(configuration['Energy_Unit'])
+        i_start, i_stop = 0, -1
+
+        if configuration['Energy_Slice']:
+            range_message = f"Original Reco Energy Range:"
+            range_message+= f" [{np.round(energy_edges[0].value,3)},"
+            range_message+= f" {np.round(energy_edges[-1].value,3)}]"
+            range_message+= f" {energy_edges.unit}. Energy bins: {len(table)}."
+            self.log.info(range_message)
+
+            dummy_array = energy_edges - energy_range[0]
+            i_start = np.argmin(np.abs(dummy_array.value))
+
+            dummy_array = energy_edges - energy_range[1]
+            i_stop = np.argmin(np.abs(dummy_array.value))
+
+            table = table[i_start: i_stop]
+
+            self.log.info(f"Slice Energies between indexes [{i_start},{i_stop}]")
+
+        range_message = f"Background Spectral Model defined at Reco Energy Range:"
+        range_message+= f" [{np.round(energy_edges[i_start].value,3)},"
+        range_message+= f" {np.round(energy_edges[i_stop].value,3)}]"
+        range_message+= f" {energy_edges.unit}. Energy bins: {len(table)}."
+        self.log.info(range_message)
+
+        self.log.info(f"Background Spectral Model defined with unit {table['BKG_MOD'].unit}\n")
+
+        return table['BKG_MOD']
+    
+    
+    
+    def compute_background_map(self):
+        raise NotImplementedError("Call funciton from a derived class.")
+        pass
+    
+    
+    
+    def _plot_background_model(self, bak_model, energy_axis, configuration, transient, output_directory):
+        """
+        Plot the Background Spectrum (cts/keV/s vs keV).
+        
+        Parameters
+        ----------
+        bak_model : `astropy.units.Quantity`
+            Background Model as count rate spectrum.
+        energy_Axis : `gammapy.maps.MapAxis`
+            Reconstructed Energy Axis for Background.
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        transient : `astropy.table.row.Row`
+            Row that contains the selected transient from the catalogue.
+        output_directory : str
+            Output directory where to save a figure of the Effective Area.
+        """
+    
+    
+        # Plot and save
+        fig, ax = plt.subplots(1, figsize=(7,5))
+
+        ax.step(energy_axis.center.value, bak_model, color = 'C3')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.set_xlabel(f"Energy [{energy_axis.unit.to_string()}]", fontsize = 'large')
+        ax.set_ylabel(f"Background rate [{bak_model.unit.to_string()}]", fontsize = 'large')
+        title = f"Background Spectral Model {configuration['Name_Instrument']}"
+        title+= f" {configuration['Name_Detector']}, {transient['name']}."
+        ax.set_title(title, fontsize = 'large')
+        ax.grid()
+
+        # Save figure
+        figure_name = output_directory+"IRF_background_spectrum"+FIGURE_FORMAT
+        self.log.info(f"Saving Background Spectral Model plot : {figure_name}\n")
+        fig.savefig(figure_name, facecolor = 'white')
+        
+        return None
 
 
 
@@ -683,6 +774,58 @@ class Dataset_Creator_GBM(Dataset_Creator_From_XSPEC):
         # Plot and Save
         self._plot_aeff_array(self.aeff_array, configuration, transient, output_directory)
         return None
+    
+    
+    
+    def compute_energy_dispersion_map(self, map_exposure_edisp, configuration, transient, output_directory):
+        """
+        Returns the Energy Dispersion Kernel Map.
+        Set the Exposure Map of the Energy Dispersion Matrix.
+
+        Parameters
+        ----------
+        map_exposure_edisp : `gammapy.maps.RegionNDMap`
+            Exposure Map with 4 dimensions: 'lon', 'lat', 'energy', 'energy_true'. Shape 1x1x1xlen(Effective Area).
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        transient : `astropy.table.row.Row`
+            Row that contains the selected transient from the catalogue.
+        output_directory : str
+            Output directory where to save a figure of the Effective Area.
+
+        Returns
+        -------
+        edisp : `gammapy.irf.EDispKernelMap`
+            Energy Dispersion Matrix as a DL4 reduced IRF with an Exposure Map.
+        """
+
+        self.log.info("Compute Energy Dispersion Matrix")
+
+        edisp = EDispKernel(axes = [self.axis_energy_true, self.axis_energy_reco],
+                            data = self.detector_response_matrix.value
+                            )
+        edisp = EDispKernelMap.from_edisp_kernel(edisp, geom = self.geometry)
+        
+        # Normalize GBM Data
+        DRM = np.zeros(np.shape(edisp.edisp_map.data.T[0][0].T))
+        for i, r in enumerate(edisp.edisp_map.data.T[0][0].T):
+            norm_row = np.sum(r)
+            if norm_row != 0.0:
+                DRM[i] = r / norm_row
+
+        DRM = np.reshape(DRM, np.shape(edisp.edisp_map.data))
+        edisp.edisp_map.data = DRM
+        self.log.warning(f"Normalization to 1 applied: assuming no lost photons.")
+
+        # Set exposure map
+        edisp.exposure_map = map_exposure_edisp
+        
+        # Plot
+        self._plot_energy_dispersion(edisp, configuration, transient, output_directory)
+
+        return edisp
+        
+    
     
     
     
@@ -773,7 +916,83 @@ class Dataset_Creator_COSI(Dataset_Creator_From_XSPEC):
         self.log.info(f"Total effective area: {np.sum(self.aeff_array)}.")
         
         # Plot and Save
-        self._plot_aeff_array(self, self.aeff_array, configuration, transient, output_directory)
+        self._plot_aeff_array(self.aeff_array, configuration, transient, output_directory)
         return None
     
     
+    def compute_energy_dispersion_map(self, map_exposure_edisp, configuration, transient, output_directory):
+        """
+        Returns the Energy Dispersion Kernel Map.
+        Set the Exposure Map of the Energy Dispersion Matrix.
+
+        Parameters
+        ----------
+        map_exposure_edisp : `gammapy.maps.RegionNDMap`
+            Exposure Map with 4 dimensions: 'lon', 'lat', 'energy', 'energy_true'. Shape 1x1x1xlen(Effective Area).
+        configuration : dict
+            Dictionary with the parameters from the YAML file.
+        transient : `astropy.table.row.Row`
+            Row that contains the selected transient from the catalogue.
+        output_directory : str
+            Output directory where to save a figure of the Effective Area.
+
+        Returns
+        -------
+        edisp : `gammapy.irf.EDispKernelMap`
+            Energy Dispersion Matrix as a DL4 reduced IRF with an Exposure Map.
+        """
+
+        self.log.info("Compute Energy Dispersion Matrix")
+
+        edisp = EDispKernel(axes = [self.axis_energy_true, self.axis_energy_reco],
+                            data = self.detector_response_matrix.value
+                            )
+        edisp = EDispKernelMap.from_edisp_kernel(edisp, geom = self.geometry)
+
+        # Set exposure map
+        edisp.exposure_map = map_exposure_edisp
+        
+        # Plot
+        self._plot_energy_dispersion(edisp, configuration, transient, output_directory)
+
+        return edisp
+    
+    
+    
+    def compute_background_map(self, bak_model, configuration, transient, output_directory):
+        """
+        Compute Background Map
+        
+        Parameters
+        ----------
+        bak_model : `astropy.units.Quantity`
+            Background Model as count rate spectrum.
+        
+        Returns
+        -------
+        map : `gammapy.maps.RegionNDMap`
+            Background Map. Axes: 'lon', 'lat', 'energy'.
+        """
+        
+        geom = self.geometry.drop('energy').to_cube([self.axis_energy_reco])
+        
+        self._plot_background_model(bak_model, self.axis_energy_reco, configuration, transient, output_directory)
+        
+        map = RegionNDMap.from_geom(geom = geom,
+                                    data = np.reshape(bak_model.value, geom.data_shape),
+                                    unit = bak_model.unit
+                                    )
+        
+        return map
+        
+        
+    
+    
+    
+    
+# data_bkg = np.transpose(bak_model.value * np.ones((axis_fovlat.nbin,axis_fovlon.nbin,axis_energy_reco_bkg.nbin)))
+
+# bkg = Background3D(axes = [axis_energy_reco_bkg, axis_fovlon, axis_fovlat],
+#                    data = data_bkg,
+#                    unit = bak_model.unit,
+#                    )
