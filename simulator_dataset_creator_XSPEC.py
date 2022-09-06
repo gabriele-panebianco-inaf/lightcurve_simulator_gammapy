@@ -19,6 +19,7 @@ from gammapy.maps import MapAxis, RegionGeom, RegionNDMap
 from matplotlib.colors import LogNorm, PowerNorm
 
 from simulator_dataset_creator import Dataset_Creator
+from scipy.interpolate import interp1d
 
 FIGURE_FORMAT = ".pdf"
 
@@ -824,6 +825,54 @@ class Dataset_Creator_GBM(Dataset_Creator_From_XSPEC):
         self._plot_energy_dispersion(edisp, configuration, transient, output_directory)
 
         return edisp
+    
+    
+    def compute_background_map(self, bak_model, livetimes, configuration, transient, output_directory):
+        """
+        Compute Background Map
+        
+        Parameters
+        ----------
+        bak_model : `astropy.units.Quantity`
+            Background Model as count rate spectrum.
+        livetimes : `astropy.units.Quantity`
+            Astropy Array of the livetimes, needed to set the Exposure Map.
+        
+        Returns
+        -------
+        map : `gammapy.maps.RegionNDMap`
+            Background Map. Axes: 'lon', 'lat', 'energy'.
+        """
+        
+        geom = self.geometry.drop('energy').to_cube([self.axis_energy_reco])
+        
+        # This background is defined over a background axis defined in file BAK.
+        self.log.warning("GBM wants another Reco Energy Axis for the Background, taken from BAK, not RSP.")
+        axis_energy_reco_bkg = self._define_energy_axis(configuration['Input_bak'],
+                                                        "EBOUNDS",
+                                                        configuration,
+                                                        energy_is_true = False
+                                                        )
+        
+        # We need to interpolate at energy edges taken from RSP.
+        f = interp1d(axis_energy_reco_bkg.center.value, bak_model.value, kind='cubic')
+        
+        energies_for_interpolation = self.axis_energy_reco.center.to(axis_energy_reco_bkg.center.unit)
+        bak_model_interp = f(energies_for_interpolation.value) * bak_model.unit
+        
+        # Plot
+        self._plot_background_model(bak_model_interp, self.axis_energy_reco, configuration, transient, output_directory)
+        
+        # Tha Background Map requires absolute counts
+        bak_counts = (bak_model_interp * self.axis_energy_reco.bin_width) * livetimes[0]
+        bak_counts.to("")
+        
+        map = RegionNDMap.from_geom(geom = geom,
+                                    data = np.reshape(bak_counts.value, geom.data_shape),
+                                    unit = bak_model.unit
+                                    )
+        
+        return map
         
     
     
@@ -959,7 +1008,7 @@ class Dataset_Creator_COSI(Dataset_Creator_From_XSPEC):
     
     
     
-    def compute_background_map(self, bak_model, configuration, transient, output_directory):
+    def compute_background_map(self, bak_model, livetimes, configuration, transient, output_directory):
         """
         Compute Background Map
         
@@ -967,6 +1016,8 @@ class Dataset_Creator_COSI(Dataset_Creator_From_XSPEC):
         ----------
         bak_model : `astropy.units.Quantity`
             Background Model as count rate spectrum.
+        livetimes : `astropy.units.Quantity`
+            Astropy Array of the livetimes, needed to set the Exposure Map.
         
         Returns
         -------
@@ -978,8 +1029,13 @@ class Dataset_Creator_COSI(Dataset_Creator_From_XSPEC):
         
         self._plot_background_model(bak_model, self.axis_energy_reco, configuration, transient, output_directory)
         
+        # Tha Background Map requires absolute counts
+        
+        bak_counts = (bak_model * self.axis_energy_reco.bin_width) * livetimes[0]
+        bak_counts.to("")
+        
         map = RegionNDMap.from_geom(geom = geom,
-                                    data = np.reshape(bak_model.value, geom.data_shape),
+                                    data = np.reshape(bak_counts.value, geom.data_shape),
                                     unit = bak_model.unit
                                     )
         

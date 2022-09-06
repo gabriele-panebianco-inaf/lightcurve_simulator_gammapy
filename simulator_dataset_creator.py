@@ -127,6 +127,7 @@ class Dataset_Creator():
         background_map : `gammapy.maps.RegionNDMap`
             Background NDMap (vs Energy).
         """
+        self.log.info(f"Set Empty Spectrum Dataset")
         self.spectrum_dataset = SpectrumDataset.create(geom = geometry,
                                                        energy_axis_true = energy_axis_true,
                                                        reference_time = reference_time,

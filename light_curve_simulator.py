@@ -2,7 +2,6 @@ from time import time
 EXECUTION_TIME_START = time()
 
 from simulator_configurator import *
-from simulator_irfs import *
 from simulator_models import *
 
 from simulator_initializer import Initializer
@@ -107,33 +106,19 @@ def Simulator(configuration, transient, output_directory):
     bak_model = configurator.read_background_spectrum(configuration)
     
     # Compute the Background as a Map for the SpectrumDataset
-    background_map = configurator.compute_background_map(bak_model, configuration, transient, output_directory)
+    background_map = configurator.compute_background_map(bak_model, observations_livetimes,
+                                                         configuration, transient, output_directory
+                                                         )
     
-    # Define the Background as a Gammapy Object
-    if configuration['Name_Instrument']=="COSI":
-        axis_energy_reco_bkg = axis_energy_reco
-    elif configuration['Name_Instrument']=="GBM":
-        logger.warning("GBM wants another Reco Energy Axis for the Background, taken from BAK, not RSP.")
-        axis_energy_reco_bkg = Define_Energy_Axis(configuration['Input_bak'],
-                                                  "EBOUNDS",
-                                                  configuration,
-                                                  logger,
-                                                  energy_is_true = False
-                                                 )
-
-    Background = Compute_Background_3D(bak_model,
-                                        axis_energy_reco_bkg,
-                                        axis_fovlon,
-                                        axis_fovlat,
-                                        geom,
-                                        logger,
-                                        configuration,
-                                        transient,
-                                        output_directory
-                                    )
-    
-    # Define the IRFs Dictionary
-    IRFs = {'aeff' : Effective_Area, 'bkg'  : Background}
+    # Create Empty Spectrum Dataset with reduced IRFs
+    configurator.set_spectrum_dataset(geometry = configurator.geometry,
+                                      energy_axis_true = configurator.axis_energy_true,
+                                      reference_time = configurator.reference_time,
+                                      energy_dispersion_map = energy_dispersion_matrix_map,
+                                      exposure_map = map_exposure,
+                                      background_map = background_map
+                                      )
+    empty = configurator.spectrum_dataset
     
     logger.info(f"{100*'='}\n")
 
